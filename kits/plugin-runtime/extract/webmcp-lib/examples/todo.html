@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Todo List - webmcp-lib Example</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; }
+  </style>
+</head>
+<body>
+  <h1>Todo List</h1>
+  <ul id="list"></ul>
+
+  <script src="../test/webmcp-polyfill.js"></script>
+  <script>
+    const state = {
+      todos: ['Learn WebMCP']
+    };
+
+    /**
+     * Get all current todos
+     * @returns {array} List of todos
+     */
+    function getTodos() {
+      return state.todos;
+    }
+
+    /**
+     * Add a new todo item
+     * @param {string} text The todo text to add
+     */
+    function addTodo(text) {
+      state.todos.push(text);
+      render();
+      return `Added: ${text}`;
+    }
+
+    /**
+     * Remove a todo item by its exact text
+     * @param {string} text The exact text of the todo to remove
+     */
+    function removeTodo(text) {
+      const idx = state.todos.indexOf(text);
+      if (idx !== -1) {
+        state.todos.splice(idx, 1);
+        render();
+        return `Removed: ${text}`;
+      }
+      return 'Not found';
+    }
+
+    function render() {
+      const list = document.getElementById('list');
+      list.innerHTML = state.todos.map(t => `<li>${t}</li>`).join('');
+    }
+    
+    render();
+  </script>
+
+  <script type="module">
+    import { exposeToWebMCP } from '../src/index.js';
+    
+    setTimeout(() => {
+      exposeToWebMCP().then(tools => {
+        console.log("Registered Todo Tools:", tools.map(t => t.name));
+      });
+    }, 100);
+  </script>
+</body>
+</html>

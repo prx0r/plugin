@@ -1,0 +1,152 @@
+{
+  "app": {
+    "name": "Domain Checker by AgentCom",
+    "subtitle": "Check domain availability",
+    "description": "Checks exact domain availability and compares available domain options for naming workflows.",
+    "category": "BUSINESS",
+    "commerce": "none",
+    "has_ui": false,
+    "serves_ads": false,
+    "capabilities": [
+      "Check exact current domain availability",
+      "Return structured availability results",
+      "Support naming workflows with verified availability"
+    ],
+    "starter_prompts": [
+      "Is pogtown.com available right now?",
+      "Check whether example.ai is free to register.",
+      "Verify the domains I am considering are available."
+    ],
+    "demo_recording_url": "https://agentcom.org/review/domain-checker-demo",
+    "release_notes": "Initial public submission."
+  },
+  "publisher": {
+    "verified_identity": true,
+    "identity_name_matches_public_urls": true,
+    "website_url": "https://agentcom.org",
+    "support_url": "https://agentcom.org/support",
+    "privacy_url": "https://agentcom.org/privacy",
+    "terms_url": "https://agentcom.org/terms"
+  },
+  "mcp": {
+    "url": "https://domains.agentcom.org/mcp",
+    "public_production": true,
+    "url_type": "Universal",
+    "auth_required": false,
+    "review_account_no_mfa": true,
+    "domain_verified": true,
+    "scan_current": true
+  },
+  "privacy": {
+    "policy_covers_categories": true,
+    "policy_covers_purposes": true,
+    "policy_covers_recipients": true,
+    "policy_covers_retention": true,
+    "policy_covers_controls": true
+  },
+  "ui": {
+    "connect_domains": [],
+    "resource_domains": [],
+    "frame_domains": [],
+    "redirect_domains": [],
+    "widget_uri_versioned": true
+  },
+  "tools": [
+    {
+      "name": "check_domain_availability",
+      "description": "Check whether an exact domain name is currently available to register. Use when the user asks whether a specific domain is available; do not use for general naming advice without an availability request.",
+      "inputs": [
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true,
+          "description": "Exact fully-qualified domain to check."
+        }
+      ],
+      "outputs": [
+        "domain",
+        "available",
+        "status",
+        "checked_at",
+        "registrar_options"
+      ],
+      "returns_structured_content": true,
+      "has_output_schema": true,
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "behavior": {
+        "mutates_state": false,
+        "accesses_public_or_open_ended_external_entities": true,
+        "irreversible_or_hard_to_reverse": false,
+        "sends_data_to_third_party": true
+      },
+      "annotation_justifications": {
+        "readOnlyHint": "True because this tool only reads current domain registration status and does not mutate user or external state.",
+        "openWorldHint": "True because this tool queries live public domain-registration infrastructure outside ChatGPT.",
+        "destructiveHint": "False because availability checks do not delete, overwrite, cancel, charge, or irreversibly modify anything.",
+        "idempotentHint": "True because repeating the same availability lookup has no additional side effect."
+      }
+    }
+  ],
+  "tests": {
+    "positive": [
+      {
+        "prompt": "Is pogtown.com available right now?",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "Can you check whether example.ai is free to register?",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "I want exact current availability for foo.dev.",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "Before I name this company, verify bar.co is available.",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "Look up the registration status of test.org.",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Why are .com domains popular?",
+        "expected_tools": []
+      },
+      {
+        "prompt": "Brainstorm names for a pet comedy show.",
+        "expected_tools": []
+      },
+      {
+        "prompt": "Explain how DNS works.",
+        "expected_tools": []
+      }
+    ]
+  },
+  "third_party_integrations": [
+    {
+      "name": "Example registrar/RDAP provider",
+      "authorized": true,
+      "official_api_or_partner_access": true,
+      "terms_reviewed": true,
+      "primary_pass_through": false
+    }
+  ]
+}

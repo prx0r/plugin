@@ -1,0 +1,44 @@
+{
+  "version": "0.1",
+  "canonical_operations": [
+    "discover",
+    "quote",
+    "availability",
+    "contact",
+    "book_or_order",
+    "status"
+  ],
+  "provider_adapter": {
+    "required_fields": [
+      "provider_id",
+      "authorization_basis",
+      "authorized",
+      "terms_reviewed_at",
+      "capabilities",
+      "geographies",
+      "rate_limits",
+      "attribution_requirements",
+      "data_retention_constraints"
+    ],
+    "production_gate": {
+      "authorized": true,
+      "terms_reviewed": true,
+      "unofficial_pass_through": false
+    }
+  },
+  "offer": {
+    "required_fields": [
+      "offer_id",
+      "provider_id",
+      "provider_name",
+      "fit",
+      "price",
+      "availability",
+      "quality",
+      "source",
+      "expires_at"
+    ],
+    "ranking_must_be_auditable": true
+  },
+  "model_visible_principle": "user semantic operations only; provider implementation details remain private"
+}

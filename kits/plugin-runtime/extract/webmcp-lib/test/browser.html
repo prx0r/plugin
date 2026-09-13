@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>webmcp-lib browser functional test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #eef2ff;
+        color: #172033;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(145deg, #eef2ff 0%, #f8fafc 55%, #ecfeff 100%);
+      }
+
+      main {
+        width: min(1100px, calc(100% - 64px));
+        margin: 0 auto;
+        padding: 52px 0;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 30px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: #4f46e5;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 38px;
+        letter-spacing: -.035em;
+      }
+
+      .subtitle {
+        max-width: 660px;
+        margin: 12px 0 0;
+        color: #59647a;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      #phase-badge {
+        flex: none;
+        border: 1px solid #c7d2fe;
+        border-radius: 999px;
+        padding: 9px 15px;
+        background: #fff;
+        color: #4338ca;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: .04em;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        min-height: 176px;
+        border: 1px solid #dbe3f0;
+        border-radius: 16px;
+        padding: 22px;
+        background: rgba(255, 255, 255, .94);
+        box-shadow: 0 12px 30px rgba(30, 41, 59, .07);
+      }
+
+      .card h2 {
+        margin: 0 0 16px;
+        color: #64748b;
+        font-size: 13px;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+      }
+
+      .value {
+        margin: 0;
+        color: #111827;
+        font-size: 27px;
+        font-weight: 750;
+        line-height: 1.25;
+      }
+
+      #tool-names {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 17px;
+        line-height: 1.65;
+        overflow-wrap: anywhere;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 10px 18px;
+        margin: 0;
+      }
+
+      dt { color: #64748b; }
+      dd {
+        margin: 0;
+        font-weight: 750;
+        text-align: right;
+      }
+
+      .pending { color: #64748b; }
+      .success { color: #047857; }
+
+      #result {
+        margin: 18px 0 0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        background: #172033;
+        color: #dbeafe;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body data-evidence-phase="loading">
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">Real Chrome · CDP acceptance run</p>
+          <h1>WebMCP registration lifecycle</h1>
+          <p class="subtitle">This page reports observable state from actual <code>document.modelContext</code> registration, callback execution, and signal-based unregister.</p>
+        </div>
+        <div id="phase-badge">LOADING</div>
+      </header>
+
+      <section class="grid" aria-label="WebMCP lifecycle results">
+        <article class="card">
+          <h2>Registered tool names</h2>
+          <p class="value pending" id="tool-names">Waiting…</p>
+        </article>
+        <article class="card">
+          <h2>Callback invocation results</h2>
+          <dl>
+            <dt>incrementCounter({})</dt><dd id="increment-result" class="pending">Not run</dd>
+            <dt>demoApi_multiply({ value: 4 })</dt><dd id="multiply-result" class="pending">Not run</dd>
+            <dt>Visible counter state</dt><dd id="counter-state">0</dd>
+            <dt>Bound product state</dt><dd id="product-state" class="pending">Not set</dd>
+          </dl>
+        </article>
+        <article class="card">
+          <h2>Unregister lifecycle</h2>
+          <dl>
+            <dt>Tools removed</dt><dd id="removed-count" class="pending">Pending</dd>
+            <dt>Tools remaining</dt><dd id="remaining-count">0</dd>
+            <dt>Removed callback executable</dt><dd id="removed-executable" class="pending">Not checked</dd>
+          </dl>
+        </article>
+        <article class="card">
+          <h2>Assertion status</h2>
+          <p class="value pending" id="assertion-status">Ready to register</p>
+          <p id="assertion-detail">No callbacks have run.</p>
+        </article>
+      </section>
+
+      <pre id="result" data-status="running">Waiting for registration…</pre>
+    </main>
+
+    <script src="./webmcp-polyfill.js"></script>
+    <script>
+    window.demoState = { count: 0 };
+
+    /**
+     * Increment the visible counter.
+     * @param {integer} amount Amount to add
+     * @returns {integer} Updated counter
+     */
+    function incrementCounter(amount = 2) {
+      window.demoState.count += amount;
+      return window.demoState.count;
+    }
+
+    window.demoApi = {
+      factor: 3,
+      /**
+       * Multiply a value using application state.
+       * @param {number} value Value to multiply
+       * @returns {number} Product
+       */
+      async multiply(value) {
+        await Promise.resolve();
+        this.lastResult = value * this.factor;
+        return this.lastResult;
+      },
+      /**
+       * Throw a test failure.
+       * @param {string} message Failure message
+       */
+      fail(message = "failure") {
+        throw new Error(message);
+      },
+    };
+    </script>
+
+    <script type="module">
+    import { exposeToWebMCP } from "../src/index.js";
+
+    const result = document.querySelector("#result");
+    const text = (selector, value, className) => {
+      const element = document.querySelector(selector);
+      element.textContent = String(value);
+      if (className) element.className = className;
+    };
+    const setPhase = (phase, badge) => {
+      document.body.dataset.evidencePhase = phase;
+      text("#phase-badge", badge);
+    };
+    const assert = (condition, message) => {
+      if (!condition) throw new Error(message);
+    };
+
+    try {
+      const initialTools = await document.modelContext.getTools();
+      assert(initialTools.length === 0, "modelContext was not empty before registration");
+      text("#tool-names", "None", "value pending");
+      text("#assertion-status", "BEFORE · no tools registered", "value");
+      text("#assertion-detail", "document.modelContext.getTools() returned 0 tools.");
+      setPhase("before", "BEFORE REGISTRATION");
+
+      if (new URLSearchParams(location.search).has("evidence")) {
+        await new Promise((resolve) => {
+          window.__continueWebMcpTest = resolve;
+        });
+        delete window.__continueWebMcpTest;
+      }
+
+      setPhase("running", "RUNNING CALLBACKS");
+      const options = {
+        root: window,
+        namespaces: ["demoApi"],
+        modelContext: document.modelContext,
+        usePromptFallback: false,
+      };
+      const tools = await exposeToWebMCP(options);
+      const registeredTools = await document.modelContext.getTools();
+      const names = registeredTools.map(({ name }) => name).sort();
+      assert(
+        names.join(",") === "demoApi_fail,demoApi_multiply,incrementCounter",
+        `unexpected tools: ${names}`,
+      );
+      assert(
+        !names.some((name) =>
+          ["parseInt", "setTimeout", "document"].includes(name)
+        ),
+        "browser builtin registered",
+      );
+
+      const returnedIncrement = tools.find(({ name }) =>
+        name === "incrementCounter"
+      );
+      const increment = registeredTools.find(({ name }) =>
+        name === "incrementCounter"
+      );
+      const multiply = registeredTools.find(({ name }) =>
+        name === "demoApi_multiply"
+      );
+      const fail = registeredTools.find(({ name }) => name === "demoApi_fail");
+      assert(
+        returnedIncrement.inputSchema.additionalProperties === false,
+        "schema was not closed",
+      );
+      assert(
+        returnedIncrement.inputSchema.properties.amount.type === "integer",
+        "JSDoc type missing",
+      );
+      assert(
+        returnedIncrement.inputSchema.properties.amount.default === 2,
+        "source default missing",
+      );
+      assert(
+        returnedIncrement.inputSchema.required.length === 0,
+        "default parameter marked required",
+      );
+      const incrementResult = await document.modelContext.executeTool(increment, {});
+      assert(
+        incrementResult === 2 && window.demoState.count === 2,
+        "registered callback state mutation failed",
+      );
+      const multiplyResult = await document.modelContext.executeTool(multiply, { value: 4 });
+      assert(
+        multiplyResult === 12 && window.demoApi.lastResult === 12,
+        "registered bound async result failed",
+      );
+
+      let caught;
+      try {
+        await document.modelContext.executeTool(fail, {
+          message: "browser expected",
+        });
+      } catch (error) {
+        caught = error;
+      }
+      assert(
+        caught?.name === "WebMCPToolExecutionError" &&
+          caught.message.includes("browser expected"),
+        "registered callback error propagation failed",
+      );
+
+      const duplicate = await exposeToWebMCP(options);
+      assert(
+        (await document.modelContext.getTools()).length === 3,
+        "dedupe failed",
+      );
+      assert(duplicate[0] === tools[0], "dedupe did not return existing tool");
+      const removedCount = tools.unregister();
+      assert(removedCount === 3, "unregister count failed");
+      const remainingTools = await document.modelContext.getTools();
+      assert(
+        remainingTools.length === 0,
+        "unregister did not remove tools from modelContext",
+      );
+
+      let removedError;
+      try {
+        await document.modelContext.executeTool(increment, {});
+      } catch (error) {
+        removedError = error;
+      }
+      assert(
+        removedError?.message.includes("not found"),
+        "removed tool remained executable through modelContext",
+      );
+
+      const report = {
+        names,
+        incrementResult,
+        count: window.demoState.count,
+        product: multiplyResult,
+        boundProductState: window.demoApi.lastResult,
+        schemasClosed: true,
+        removedCount,
+        remainingTools: remainingTools.length,
+        removedCallbackExecutable: false,
+      };
+      text("#tool-names", names.join(" · "), "value");
+      text("#increment-result", incrementResult, "success");
+      text("#multiply-result", multiplyResult, "success");
+      text("#counter-state", window.demoState.count, "success");
+      text("#product-state", window.demoApi.lastResult, "success");
+      text("#removed-count", removedCount, "success");
+      text("#remaining-count", remainingTools.length, "success");
+      text("#removed-executable", "No · not found", "success");
+      text("#assertion-status", "PASSED · actual callbacks verified", "value success");
+      text("#assertion-detail", "Schemas, dedupe, thrown errors, receiver binding, mutation, and unregister assertions all passed.");
+      result.dataset.status = "passed";
+      result.textContent = JSON.stringify(report, null, 2);
+      setPhase("after", "AFTER UNREGISTER");
+    } catch (error) {
+      result.dataset.status = "failed";
+      result.textContent = error.stack || String(error);
+      text("#assertion-status", "FAILED", "value");
+      text("#assertion-detail", error.message || String(error));
+      setPhase("failed", "ASSERTION FAILED");
+    }
+    </script>
+  </body>
+</html>

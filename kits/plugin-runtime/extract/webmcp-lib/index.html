@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webmcp-lib — live demos</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      max-width: 720px; margin: 0 auto; padding: 40px 20px;
+      line-height: 1.6;
+    }
+    h1 { margin-bottom: 4px; }
+    .lede { color: #666; margin-top: 0; }
+    .grid { display: grid; gap: 12px; margin-top: 24px; }
+    a.card {
+      display: block; text-decoration: none; color: inherit;
+      border: 1px solid #ccc; border-radius: 10px; padding: 16px 20px;
+    }
+    a.card:hover { border-color: #888; background: rgba(128,128,128,0.06); }
+    a.card strong { display: block; font-size: 18px; }
+    a.card span { color: #666; font-size: 14px; }
+    code { background: rgba(128,128,128,0.15); padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>webmcp-lib</h1>
+  <p class="lede">
+    A dependency-free JS library that discovers page functions and exposes them as
+    <a href="https://github.com/GoogleChromeLabs/webmcp-tools">WebMCP</a> tool calls.
+    Open any demo, then check the DevTools console for registered tools.
+  </p>
+
+  <div class="grid">
+    <a class="card" href="./examples/discovery.html">
+      <strong>Live discovery and calls</strong>
+      <span>Registers a stateful namespace, calls its tools, and renders returned state.</span>
+    </a>
+    <a class="card" href="./examples/calculator.html">
+      <strong>Calculator</strong>
+      <span>Exposes <code>add</code> / <code>subtract</code> from <code>window</code>.</span>
+    </a>
+    <a class="card" href="./examples/todo.html">
+      <strong>Todo List</strong>
+      <span>Stateful <code>getTodos</code> / <code>addTodo</code> / <code>removeTodo</code>.</span>
+    </a>
+    <a class="card" href="./examples/namespaced.html">
+      <strong>Namespaced API</strong>
+      <span>Discovers tools on <code>window.MyApp</code> with a depth limit.</span>
+    </a>
+    <a class="card" href="./test/harness.html">
+      <strong>Test Harness</strong>
+      <span>Runs discovery over several function shapes and prints the schema.</span>
+    </a>
+  </div>
+
+  <p style="margin-top: 32px; color: #666; font-size: 14px;">
+    Source: <a href="https://github.com/PaulKinlan/webmcp-lib">github.com/PaulKinlan/webmcp-lib</a>
+  </p>
+</body>
+</html>

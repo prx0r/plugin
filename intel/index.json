@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "updated": "2026-09-13",
+  "files": [
+    {
+      "file": "submission-field-notes.json",
+      "items": 10,
+      "topics": ["submission", "tool-design", "auth"],
+      "sources": [
+        "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+        "https://www.reddit.com/r/mcp/comments/1ps1sr5/my_experience_submitting_my_first_chatgpt_app"
+      ]
+    },
+    {
+      "file": "submission-official.json",
+      "items": 11,
+      "topics": ["submission", "auth"],
+      "sources": ["https://developers.openai.com/apps-sdk/deploy/submission"]
+    },
+    {
+      "file": "tool-design.json",
+      "items": 8,
+      "topics": ["tool-design"],
+      "sources": [
+        "https://developers.openai.com/plugins/plan/tools",
+        "https://github.com/alpic-ai/skybridge",
+        "https://xmcp.dev/blog/build-and-submit-gpt-apps",
+        "https://community.openai.com/t/lessons-learnt-from-speedrunning-chatgpt-apps/1366805"
+      ]
+    },
+    {
+      "file": "review-ops.json",
+      "items": 16,
+      "topics": ["review-ops"],
+      "sources": ["https://community.openai.com/t/chatgpt-app-store-is-open-for-submissions/1369611/20"]
+    },
+    {
+      "file": "discovery.json",
+      "items": 24,
+      "topics": ["discovery"],
+      "sources": [
+        "https://community.openai.com/t/apps-search-only-returning-results-based-on-app-name-or-subtitle/1380113",
+        "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+        "https://community.openai.com/t/when-do-our-apps-surface-to-users-clarification-requested/1379612/9",
+        "https://github.com/Roee-Tsur/mcp-spec-check",
+        "https://docs.x.com/tools/mcp"
+      ]
+    },
+    {
+      "file": "evals.json",
+      "items": 7,
+      "topics": ["tool-design", "review-ops"],
+      "sources": [
+        "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+        "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183"
+      ]
+    },
+    {
+      "file": "watchlist.json",
+      "note": "23 tracked accounts, not advice items — excluded from item counts"
+    }
+  ],
+  "total_items": 76
+}

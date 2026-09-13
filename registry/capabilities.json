@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "updated": "2026-09-13",
+  "publisher": "AgentCom",
+  "trustDomain": "agentcom.org",
+  "infraPattern": "{capability}.agentcom.org",
+  "capabilities": [
+    {
+      "id": "domains.check",
+      "title": "Domain Availability",
+      "subtitle": "Check domain availability",
+      "page": "https://agentcom.org/domain-availability",
+      "mcp": "https://domain.agentcom.org/mcp",
+      "surfaces": ["mcp", "webmcp", "http", "website"],
+      "schemaVersion": "v1",
+      "auth": "none",
+      "status": "live-experiment"
+    },
+    {
+      "id": "print.quote",
+      "title": "Custom Print",
+      "subtitle": "Compare printing options and prices",
+      "page": "https://agentcom.org/tools/custom-print",
+      "mcp": "https://print.agentcom.org/mcp",
+      "surfaces": ["mcp", "website"],
+      "schemaVersion": "v1",
+      "auth": "none-until-order",
+      "status": "live-experiment"
+    }
+  ]
+}

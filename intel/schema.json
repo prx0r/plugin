@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentCom intel item",
+  "type": "object",
+  "required": ["id", "topic", "advice", "source", "confidence", "status", "last_checked"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "topic": { "enum": ["submission", "tool-design", "review-ops", "discovery", "auth"] },
+    "advice": { "type": "string", "minLength": 10 },
+    "detail": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["type", "url"],
+      "properties": {
+        "type": { "enum": ["community", "official"] },
+        "url": { "type": "string" },
+        "date": { "type": "string" }
+      }
+    },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "status": { "enum": ["verified", "anecdotal", "official", "stale"] },
+    "superseded_by": { "type": "string" },
+    "applies_to": { "type": "array", "items": { "type": "string" } },
+    "last_checked": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+  }
+}

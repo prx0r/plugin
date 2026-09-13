@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Domain Availability",
+    "subtitle": "Check domain availability",
+    "description": "Check whether an exact domain name is available to register, check several at once, and suggest available names for a brand or idea. Uses live public registration data; never guesses.",
+    "category": "UTILITIES"
+  },
+  "tools": {
+    "check_exact_domain": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads public registration status; changes nothing locally or remotely.",
+        "open_world_justification": "Queries live public RDAP registration infrastructure on the open internet.",
+        "destructive_justification": "An availability lookup cannot delete, overwrite, charge, or irreversibly change anything."
+      }
+    },
+    "batch_check_domains": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Batch lookup only reads public registration status for each name.",
+        "open_world_justification": "Each lookup queries live public RDAP infrastructure on the open internet.",
+        "destructive_justification": "Availability lookups have no side effects individually or in batch."
+      }
+    },
+    "find_available_domains": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Suggestion generation and availability filtering only read public data.",
+        "open_world_justification": "Candidate availability is verified against live public RDAP infrastructure.",
+        "destructive_justification": "Suggesting names changes nothing anywhere."
+      }
+    }
+  },
+  "positive_test_cases": [
+    {
+      "prompt": "Is pogtown.com available right now?",
+      "tools_triggered": ["check_exact_domain"],
+      "expected_output": "Available/taken verdict for pogtown.com with validity confirmation."
+    },
+    {
+      "prompt": "Check pog.pet and pog.town for me.",
+      "tools_triggered": ["batch_check_domains"],
+      "expected_output": "Per-domain verdicts for both names in input order."
+    },
+    {
+      "prompt": "I like Pogtown. Give me ten strong available .com alternatives.",
+      "tools_triggered": ["find_available_domains"],
+      "expected_output": "Up to 5-10 available suggestions; taken names excluded, unknowns marked unknown."
+    },
+    {
+      "prompt": "Is agentcom.org taken?",
+      "tools_triggered": ["check_exact_domain"],
+      "expected_output": "Taken verdict for agentcom.org."
+    },
+    {
+      "prompt": "Which of these is free: alpha.io, alpha.co, alpha.dev?",
+      "tools_triggered": ["batch_check_domains"],
+      "expected_output": "Per-domain verdicts identifying the free ones."
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "prompt": "Why is .com usually preferred for startups?",
+      "expected_behavior": "Do not trigger the plugin; answer as general information."
+    },
+    {
+      "prompt": "Brainstorm funny names for a dog show.",
+      "expected_behavior": "Do not trigger the plugin; pure ideation with no availability request."
+    },
+    {
+      "prompt": "What is RDAP?",
+      "expected_behavior": "Do not trigger the plugin; explain the concept."
+    }
+  ]
+}

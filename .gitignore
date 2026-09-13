@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+# Node
+node_modules/
+# OS
+.DS_Store
+# Env
+.env
+
+# Build
+*.tsbuildinfo
+dist/

@@ -1,0 +1,223 @@
+{
+  "generated_at": "2026-09-13",
+  "sources": [
+    {
+      "id": "openai_submission",
+      "tier": "OFFICIAL_HARD",
+      "date_checked": "2026-09-13",
+      "title": "Submit plugins | OpenAI Developers",
+      "url": "https://developers.openai.com/plugins/deploy/submission",
+      "claims": [
+        "Public MCP plugin submissions require a stable public HTTPS MCP endpoint.",
+        "Public submissions require verified developer/business identity and Apps Management write access.",
+        "Submission includes listing metadata, MCP details, starter prompts, five positive and three negative test cases, availability and release notes.",
+        "Authenticated review credentials must work without MFA/SMS/email confirmation/private network.",
+        "Tool names/descriptions/schemas/annotations must match behavior and responses must avoid unnecessary personal/debug/internal data."
+      ]
+    },
+    {
+      "id": "openai_guidelines",
+      "tier": "OFFICIAL_HARD",
+      "date_checked": "2026-09-13",
+      "title": "Plugin guidelines | OpenAI Developers",
+      "url": "https://developers.openai.com/plugins/app-guidelines",
+      "claims": [
+        "Plugins should fill common conversational intents not already natively supported.",
+        "Tool names must be specific, human-readable, unique and non-promotional.",
+        "Tool descriptions must match behavior and must not manipulate fair discovery.",
+        "readOnlyHint/openWorldHint/destructiveHint must match actual behavior.",
+        "Inputs and responses must be minimal and purpose-driven.",
+        "Do not request full conversation history/raw transcripts or precise location fields.",
+        "Authenticated demo accounts must be fully usable without extra verification steps.",
+        "Public plugins cannot primarily be unofficial/pass-through connectors to third-party services; third-party access must be authorized and terms-compliant.",
+        "Plugins may conduct commerce for physical goods under current rules; digital goods/services transactions are restricted.",
+        "Plugin UI ads are prohibited; plugin must provide standalone value.",
+        "frameDomains/iframes trigger stricter review and are discouraged."
+      ]
+    },
+    {
+      "id": "openai_tools",
+      "tier": "OFFICIAL_GUIDANCE",
+      "date_checked": "2026-09-13",
+      "title": "Define tools | OpenAI Developers",
+      "url": "https://developers.openai.com/plugins/plan/tools",
+      "claims": [
+        "Design tools from user goals, not by mirroring internal APIs.",
+        "Group coherent operations and split operations when permissions/safety/confirmation differ.",
+        "Separate read and write behavior.",
+        "Descriptions should explain user intent, when to use, distinctions and limitations.",
+        "Return stable identifiers and structured fields for follow-up calls.",
+        "Check overlapping tool descriptions that could confuse model selection."
+      ]
+    },
+    {
+      "id": "openai_reference",
+      "tier": "OFFICIAL_GUIDANCE",
+      "date_checked": "2026-09-13",
+      "title": "Plugin reference | OpenAI Developers",
+      "url": "https://developers.openai.com/plugins/reference",
+      "claims": [
+        "Declare outputSchema for tools returning structuredContent.",
+        "Tool result _meta is hidden from the model and can hydrate UI without transcript exposure.",
+        "UI CSP should narrowly specify connect/resource/frame domains.",
+        "frameDomains opts into iframe usage and triggers stricter review."
+      ]
+    },
+    {
+      "id": "openai_submission_skill",
+      "tier": "OFFICIAL_TOOLING",
+      "date_checked": "2026-09-13",
+      "title": "OpenAI chatgpt-app-submission skill",
+      "url": "https://github.com/openai/plugins/blob/main/plugins/openai-developers/skills/chatgpt-app-submission/SKILL.md",
+      "claims": [
+        "OpenAI publishes a skill that inspects source behavior, annotations, tool names/descriptions, CSP and outputSchema before generating submission JSON.",
+        "Its workflow uses exactly five positive and three negative test cases.",
+        "It treats missing/null readOnlyHint/openWorldHint/destructiveHint as submission blockers.",
+        "It warns when outputSchema is omitted and flags sensitive fields, weak CSP and misleading names/descriptions."
+      ]
+    },
+    {
+      "id": "casey_metadata",
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "date_checked": "2026-09-13",
+      "title": "Can app metadata and tool descriptions improve discovery?",
+      "url": "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+      "claims": [
+        "Casey Chow said best practices are in flux.",
+        "Current high-level advice: make suggested tool intent clear, lean on model-written language, and write lots of evals and hill-climb on them."
+      ]
+    },
+    {
+      "id": "casey_search",
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "date_checked": "2026-09-13",
+      "title": "Apps search only returning results based on App Name or Subtitle",
+      "url": "https://community.openai.com/t/apps-search-only-returning-results-based-on-app-name-or-subtitle/1380113",
+      "claims": [
+        "As of 2026-04-30, Casey Chow said directory search intentionally focused on title/subtitle because long-description search had been noisy.",
+        "This is a point-in-time discovery implementation detail, not a durable guarantee."
+      ]
+    },
+    {
+      "id": "casey_discovery",
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "date_checked": "2026-09-13",
+      "title": "When Do Our Apps Surface To Users?",
+      "url": "https://community.openai.com/t/when-do-our-apps-surface-to-users-clarification-requested/1379612",
+      "claims": [
+        "As of 2026-04-23, Casey Chow described directory listings as fairly manual and discovery as an area of experimentation.",
+        "Community developers reported weak organic discovery despite relevant query volume in April-May 2026.",
+        "Do not model directory distribution as guaranteed acquisition."
+      ]
+    },
+    {
+      "id": "submission_roundup",
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "date_checked": "2026-09-13",
+      "title": "App Submission Flow Improvements Roundup",
+      "url": "https://community.openai.com/t/app-submission-flow-improvements-roundup/1379047",
+      "claims": [
+        "OpenAI added clearer validation errors, required tool annotation explanations and fixes to MCP validation/resubmission.",
+        "OpenAI acknowledged submission/review process friction and changing infrastructure."
+      ]
+    },
+    {
+      "id": "annotations_casey",
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "date_checked": "2026-09-13",
+      "title": "Clarification on tool annotations",
+      "url": "https://community.openai.com/t/clarification-needed-on-rejection-feedback-tool-annotations-and-developer-name-mismatch/1379402/4",
+      "claims": [
+        "Casey Chow said idempotentHint was not required at that time but strongly recommended.",
+        "He described openWorld as signaling effects visible beyond the current user, though official docs now also explicitly include open-ended public internet reads."
+      ]
+    },
+    {
+      "id": "community_best_practices",
+      "tier": "COMMUNITY_EXPERIENCE",
+      "date_checked": "2026-09-13",
+      "title": "Getting Started with ChatGPT Apps SDK: Tips and Best Practices",
+      "url": "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183",
+      "claims": [
+        "Community advice: refresh connector after MCP metadata changes, get annotations right early, avoid iframes unless necessary, test web/mobile, keep latency low, minimize data, version widget URIs."
+      ]
+    },
+    {
+      "id": "reddit_submission",
+      "tier": "REDDIT_ANECDOTE",
+      "date_checked": "2026-09-13",
+      "title": "Just submitted my MCP Server to the OpenAI Apps SDK",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+      "claims": [
+        "A developer documented a detailed submission flow for a 36-tool MCP app.",
+        "Useful as anecdotal review ergonomics; not authoritative for current policy."
+      ]
+    },
+    {
+      "id": "reddit_architecture",
+      "tier": "REDDIT_ANECDOTE",
+      "date_checked": "2026-09-13",
+      "title": "How OpenAI's Apps SDK works",
+      "url": "https://www.reddit.com/r/mcp/comments/1o5lfov",
+      "claims": [
+        "Community explanation correctly characterizes Apps SDK as MCP server plus optional widget resources/UI.",
+        "Supports a tool-first architecture with UI only where it improves the workflow."
+      ]
+    },
+    {
+      "id": "review_latency",
+      "tier": "COMMUNITY_EXPERIENCE",
+      "date_checked": "2026-09-13",
+      "title": "Submissions take so long that requirements change",
+      "url": "https://community.openai.com/t/submissions-take-so-long-that-requirements-change-which-leads-to-app-rejections/1392493",
+      "claims": [
+        "A developer reported roughly 20-day review cycles in August 2026 and requirement drift across updates.",
+        "Treat public plugin review as a deployment surface, not the core development loop."
+      ]
+    },
+    {
+      "id": "openai_submission_errors",
+      "tier": "OFFICIAL_HARD",
+      "date_checked": "2026-09-13",
+      "title": "Plugin submission errors | OpenAI Developers",
+      "url": "https://developers.openai.com/plugins/deploy/submission-errors",
+      "claims": [
+        "Defines current field-length/count limits and final remote-MCP submission errors.",
+        "Remote MCP final submission requires production HTTPS MCP, completed domain verification, current scan, explicit annotations plus justifications, demo recording URL, exactly five positive and three negative tests, release notes, reviewer OAuth credentials when applicable, and UI screenshots only when custom UI exists."
+      ]
+    },
+    {
+      "id": "community_test_case_rejection",
+      "tier": "COMMUNITY_EXPERIENCE",
+      "date_checked": "2026-09-13",
+      "title": "Request for Clarification on Rejected App Review",
+      "url": "https://community.openai.com/t/request-for-clarification-on-rejected-app-review/1381296",
+      "claims": [
+        "Developer reported repeated rejection because submitted test cases did not produce consistent expected outcomes across review.",
+        "Treat test reproducibility, output formatting, schema validity, mobile behavior and timeouts as pre-submit diagnostics."
+      ]
+    },
+    {
+      "id": "community_tool_description_rejection",
+      "tier": "COMMUNITY_EXPERIENCE",
+      "date_checked": "2026-09-13",
+      "title": "App review: Xpoz submission rejected twice",
+      "url": "https://community.openai.com/t/app-review-xpoz-submission-rejected-twice-seeking-guidance-on-tool-descriptions/1386944",
+      "claims": [
+        "Developer reported one rejection for missing reviewer credentials and a subsequent rejection focused on tool descriptions.",
+        "Use official guidance and routing evals rather than relying on prose intuition."
+      ]
+    },
+    {
+      "id": "community_oauth_review",
+      "tier": "COMMUNITY_EXPERIENCE",
+      "date_checked": "2026-09-13",
+      "title": "Platform.openai app submission glitch",
+      "url": "https://community.openai.com/t/platform-openai-app-submission-glitch/1382472",
+      "claims": [
+        "Multiple developers reported review-time OAuth failures despite development testing.",
+        "Rehearse a dedicated reviewer-account flow independently and keep escalation/review evidence."
+      ]
+    }
+  ]
+}

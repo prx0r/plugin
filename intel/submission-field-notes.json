@@ -1,0 +1,152 @@
+[
+  {
+    "id": "prep-assets-before-new-app",
+    "topic": "submission",
+    "advice": "Prepare ALL assets before clicking New app — the submission form is unforgiving and happy-path only.",
+    "detail": "Do not start the flow without icon, screenshots, descriptions, test accounts ready. Multiple submitters report the form does not save gracefully.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/mcp/comments/1ps1sr5/my_experience_submitting_my_first_chatgpt_app",
+      "date": "2025-12-21"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "asset-specs-svg-screenshots",
+    "topic": "submission",
+    "advice": "Icon must be SVG exactly 64x64 (test in dark mode); screenshots exactly 706px wide, 400–800px high.",
+    "detail": "Brutal exact-pixel requirements. Build an asset checklist script that asserts dimensions before submission day.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/mcp/comments/1ps1sr5/my_experience_submitting_my_first_chatgpt_app",
+      "date": "2025-12-21"
+    },
+    "confidence": "high",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "hints-never-null",
+    "topic": "submission",
+    "advice": "Every tool must set all three hints (readOnlyHint, openWorldHint, destructiveHint) explicitly — null/missing is a submission blocker.",
+    "detail": "Confirmed by OpenAI's own submission skill: missing or null hints block even though MCP clients have protocol defaults. Our server.ts already sets all three on all 9 tools.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/mcp/comments/1ps1sr5/my_experience_submitting_my_first_chatgpt_app",
+      "date": "2025-12-21"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "domain-challenge-undocumented",
+    "topic": "submission",
+    "advice": "Expect a unique domain-verification token at /.well-known/openai-apps-challenge that only appears inside the submission form and is absent from the SDK docs.",
+    "detail": "Serve the exact token at that path; watch server logs for 404s during the flow — submitters debugged missing .well-known endpoints purely from access logs.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+      "date": "2025-12-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "watch-logs-for-404s",
+    "topic": "submission",
+    "advice": "Tail MCP server access logs during Scan Tools and submission — undocumented fetches (well-known paths, metadata) surface only as 404s.",
+    "detail": "Trial-and-error + log-watching was the primary debugging method for the most detailed public submission report.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+      "date": "2025-12-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "write-ops-are-review-flashpoint",
+    "topic": "submission",
+    "advice": "Write operations get the hardest scrutiny — demonstrate safety (confirmations, idempotency, blast-radius limits), not just functionality.",
+    "detail": "Ad-platform MCP builders report the read/write split is the defining review and trust question; accidental destructive action via misheard prompt is the canonical fear. Our place_print_order (confirmed + quote-bound + idempotent) and future book_* tools match this bar.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+      "date": "2025-12-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "scan-tools-oauth-blank-screen",
+    "topic": "submission",
+    "advice": "Scan Tools with OAuth can redirect through auth and land on a blank screen — have a no-auth tool path testable first, add OAuth after the scan passes.",
+    "detail": "Multiple reports (Feb–Mar 2026 forum threads corroborate OAuth scan glitches). Our domains tools need no auth — submit them first, keep OAuth for later user-scoped tools.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+      "date": "2025-12-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "mcp-auth-timeouts-common",
+    "topic": "auth",
+    "advice": "Budget extra time for MCP auth (timeouts reported even with correct settings); verify discovery endpoints list offline_access-equivalent scopes.",
+    "detail": "Per OpenAI help docs, .well-known/openid-configuration or oauth-authorization-server must list offline_access (or provider equivalent) in scopes_supported.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+      "date": "2025-12-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "ui-acceptance-new-presentation-counts",
+    "topic": "submission",
+    "advice": "A widget qualifies as an acceptable UI use case if it is a genuinely new, more useful presentation of content — it need not be novel data.",
+    "detail": "Migrated custom GPTs were questioned; UI-backed apps presenting the same content better were accepted in principle. Our quote-comparison card fits this exactly.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/mcp/comments/1ps1sr5/my_experience_submitting_my_first_chatgpt_app",
+      "date": "2025-12-21"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "autogenerate-then-human-review",
+    "topic": "submission",
+    "advice": "Auto-generate metadata, tool descriptions and test cases from the codebase (e.g. via the official chatgpt-app-submission skill), then human-review every line.",
+    "detail": "Skill schema: https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json — emits app info, tool-hint justifications, positive/negative test cases, review-check findings. Fractal's rejection-rate blog: usefractal.dev/blog/common-chatgpt-app-rejections-and-how-to-fix-them.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/mcp/comments/1ps1sr5/my_experience_submitting_my_first_chatgpt_app",
+      "date": "2025-12-21"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  }
+]

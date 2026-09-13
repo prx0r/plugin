@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "updated": "2026-09-13",
+  "experiments": [
+    {
+      "id": "domain-naming-a-b-c",
+      "capability": "domains.check",
+      "question": "Which app/tool naming wins routing on a fixed corpus?",
+      "corpus": "eval-seeds-domains",
+      "variants": [
+        {
+          "label": "A-checker",
+          "app": "Domain Checker",
+          "tools": {
+            "check_exact_domain": "Check whether a domain name is currently available.",
+            "batch_check_domains": "Check several domain names for availability at once.",
+            "find_available_domains": "Suggest available domain names for an idea."
+          }
+        },
+        {
+          "label": "B-availability",
+          "app": "Domain Availability",
+          "tools": {
+            "check_exact_domain": "Returns current registration availability for an exact domain name.",
+            "batch_check_domains": "Returns current registration availability for up to 20 exact domain names.",
+            "find_available_domains": "Returns available domain-name suggestions for keywords."
+          }
+        },
+        {
+          "label": "C-finder",
+          "app": "Find Available Domains",
+          "tools": {
+            "check_exact_domain": "Check live registrar availability before suggesting or purchasing a domain.",
+            "batch_check_domains": "Check live registrar availability for a list of domains.",
+            "find_available_domains": "Find purchasable domain names matching keywords."
+          }
+        }
+      ],
+      "metric": "selection-accuracy",
+      "status": "open"
+    }
+  ]
+}

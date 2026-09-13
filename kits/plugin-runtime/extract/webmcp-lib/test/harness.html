@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>webmcp-lib Test Harness</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>webmcp-lib Test Harness</h1>
+  <p>This page defines several functions. We then load <code>webmcp-lib</code> to discover and register them.</p>
+
+  <h2>Registered Tools</h2>
+  <pre id="output">Loading...</pre>
+
+  <script src="webmcp-polyfill.js"></script>
+
+  <script>
+    /**
+     * Greets a user by name.
+     * @param {string} name The name of the user
+     * @returns {string} The greeting message
+     */
+    function greet(name) {
+      return `Hello, ${name}!`;
+    }
+
+    /**
+     * Subtracts two numbers.
+     * @param {number} a The first number
+     * @param {number} b The second number
+     */
+    const subtract = (a, b) => a - b;
+
+    // Minified / no-comment function to test AI fallback (if available)
+    function multiply(a,b){return a*b;}
+  </script>
+
+  <script type="module">
+    import { exposeToWebMCP } from '../src/index.js';
+
+    async function run() {
+      // Small delay to ensure polyfill setup
+      await new Promise(r => setTimeout(r, 100));
+
+      const tools = await exposeToWebMCP({ root: window, maxDepth: 1 });
+      document.getElementById('output').textContent = JSON.stringify(tools, null, 2);
+    }
+    
+    run().catch(err => {
+      document.getElementById('output').textContent = 'Error: ' + err.message;
+    });
+  </script>
+</body>
+</html>

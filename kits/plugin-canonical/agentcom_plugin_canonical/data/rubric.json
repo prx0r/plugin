@@ -1,0 +1,108 @@
+{
+  "version": "2026-09-13",
+  "score_total": 100,
+  "hard_gate_policy": "Any ERROR hard-gate failure => NO_GO regardless of score.",
+  "thresholds": {
+    "submit": 90,
+    "internal_beta": 80,
+    "rework": 70
+  },
+  "dimensions": [
+    {
+      "id": "intent_fit",
+      "weight": 18,
+      "criteria": [
+        "single clear conversational job",
+        "fills native capability gap",
+        "real-world useful outcome",
+        "negative boundary is obvious"
+      ]
+    },
+    {
+      "id": "tool_selection",
+      "weight": 18,
+      "criteria": [
+        "action-oriented unique names",
+        "descriptions state what/when/limits",
+        "low overlap",
+        "routing eval precision >=0.97",
+        "routing eval recall >=0.95"
+      ]
+    },
+    {
+      "id": "contract_quality",
+      "weight": 14,
+      "criteria": [
+        "minimal explicit input schema",
+        "stable identifiers",
+        "structured outputs",
+        "outputSchema present",
+        "read/write split where appropriate"
+      ]
+    },
+    {
+      "id": "safety_privacy",
+      "weight": 16,
+      "criteria": [
+        "annotations match source behavior",
+        "minimal data collection",
+        "no restricted-data solicitation",
+        "side effects explicit",
+        "retry/idempotency considered",
+        "privacy policy matches behavior"
+      ]
+    },
+    {
+      "id": "provider_legitimacy",
+      "weight": 10,
+      "criteria": [
+        "official/authorized third-party access",
+        "terms compliant",
+        "not unofficial proxy/pass-through",
+        "value-added normalization/routing is independent"
+      ]
+    },
+    {
+      "id": "reliability_latency",
+      "weight": 10,
+      "criteria": [
+        "clear errors/fallbacks",
+        "timeouts bounded",
+        "p95 read target <=2s where feasible",
+        "provider health isolation",
+        "deterministic ranking where economic allocation is involved"
+      ]
+    },
+    {
+      "id": "review_readiness",
+      "weight": 8,
+      "criteria": [
+        "verified publisher",
+        "public production MCP",
+        "review credentials no MFA",
+        "5 positive + 3 negative tests",
+        "web+mobile tested where relevant",
+        "CSP narrow"
+      ]
+    },
+    {
+      "id": "distribution_metadata",
+      "weight": 4,
+      "criteria": [
+        "literal useful name",
+        "short subtitle maps to intent",
+        "starter prompts are realistic",
+        "no fair-play manipulation"
+      ]
+    },
+    {
+      "id": "portability",
+      "weight": 2,
+      "criteria": [
+        "business logic behind MCP-neutral service layer",
+        "OpenAI-specific UI optional",
+        "stable provider adapter contract"
+      ]
+    }
+  ]
+}

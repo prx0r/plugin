@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentCom Third-Party Provider Ledger",
+  "type": "object",
+  "required": [
+    "provider",
+    "access",
+    "terms",
+    "agentcom_value_add",
+    "review"
+  ],
+  "properties": {
+    "provider": {
+      "type": "object",
+      "required": [
+        "name",
+        "vertical",
+        "website"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "vertical": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        }
+      }
+    },
+    "access": {
+      "type": "object",
+      "required": [
+        "authorized",
+        "official_api_or_partner_access",
+        "method"
+      ],
+      "properties": {
+        "authorized": {
+          "type": "boolean"
+        },
+        "official_api_or_partner_access": {
+          "type": "boolean"
+        },
+        "method": {
+          "type": "string"
+        },
+        "authorization_evidence": {
+          "type": "string"
+        },
+        "api_docs": {
+          "type": "string"
+        }
+      }
+    },
+    "terms": {
+      "type": "object",
+      "required": [
+        "reviewed",
+        "reviewed_at",
+        "allows_intended_use"
+      ],
+      "properties": {
+        "reviewed": {
+          "type": "boolean"
+        },
+        "reviewed_at": {
+          "type": "string"
+        },
+        "allows_intended_use": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "agentcom_value_add": {
+      "type": "object",
+      "required": [
+        "primary_pass_through",
+        "normalization",
+        "ranking_or_decision_support",
+        "workflow_or_transaction_value"
+      ],
+      "properties": {
+        "primary_pass_through": {
+          "type": "boolean"
+        },
+        "normalization": {
+          "type": "boolean"
+        },
+        "ranking_or_decision_support": {
+          "type": "boolean"
+        },
+        "workflow_or_transaction_value": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "owner",
+        "last_checked",
+        "go"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string"
+        },
+        "last_checked": {
+          "type": "string"
+        },
+        "go": {
+          "type": "boolean"
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

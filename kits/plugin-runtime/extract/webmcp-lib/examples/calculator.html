@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculator - webmcp-lib Example</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; }
+    input, button { padding: 10px; font-size: 16px; margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Calculator</h1>
+  <div>
+    <input type="number" id="numA" value="0">
+    <input type="number" id="numB" value="0">
+    <button onclick="updateUI(add(getValue('numA'), getValue('numB')))">Add</button>
+    <button onclick="updateUI(subtract(getValue('numA'), getValue('numB')))">Subtract</button>
+  </div>
+  <h2>Result: <span id="res">0</span></h2>
+
+  <script src="../test/webmcp-polyfill.js"></script>
+  <script>
+    const getValue = (id) => parseFloat(document.getElementById(id).value) || 0;
+    const updateUI = (val) => document.getElementById('res').textContent = val;
+
+    /**
+     * Add two numbers
+     * @param {number} a 
+     * @param {number} b
+     */
+    function add(a, b) {
+      return a + b;
+    }
+
+    /**
+     * Subtract two numbers
+     * @param {number} a
+     * @param {number} b
+     */
+    function subtract(a, b) {
+      return a - b;
+    }
+  </script>
+
+  <script type="module">
+    import { exposeToWebMCP } from '../src/index.js';
+    
+    // Automatically expose window functions to WebMCP
+    setTimeout(() => {
+      exposeToWebMCP().then(tools => {
+        console.log("Registered Calculator Tools:", tools.map(t => t.name));
+      });
+    }, 100);
+  </script>
+</body>
+</html>

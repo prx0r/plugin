@@ -1,0 +1,21 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family:
+    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.tx-row {
+  border-radius: 8px;
+}
+.tx-row:hover {
+  background: var(--row-hover);
+}
+.tx-row .tx-edit {
+  opacity: 0;
+}
+.tx-row:hover .tx-edit,
+.tx-row:focus-within .tx-edit {
+  opacity: 1;
+}

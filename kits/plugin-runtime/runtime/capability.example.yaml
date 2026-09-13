@@ -1,0 +1,64 @@
+id: check-domain
+title: Domain availability checker
+domain: agent-commerce
+endpoint: https://agentcom.example/mcp
+ui_domain: https://agentcom.example
+contact: ops@example.invalid
+csp:
+  connect_domains:
+    - https://agentcom.example
+    - https://api.agentcom.example
+  resource_domains:
+    - https://agentcom.example
+  frame_domains: []
+  redirect_domains:
+    - https://checkout.agentcom.example
+tools:
+  - name: check_domain
+    description: >-
+      Check whether a single domain name is currently registered and available
+      for purchase. Returns registration status, registrar, and price.
+      Use for exact availability questions, not for brainstorming names.
+    args:
+      domain:
+        type: string
+        description: Fully qualified domain name, e.g. agentcom.org
+        required: true
+    model_visible: true
+    read_only: true
+  - name: suggest_names
+    description: >-
+      Brainstorm available brandable domain names for a described startup idea
+      under constraints on length, count, and TLD. Returns ranked candidates
+      with availability. Use for open-ended naming requests.
+    args:
+      idea:
+        type: string
+        description: Startup idea in a few words, e.g. AI accounting startup
+        required: true
+      max_length:
+        type: integer
+        description: Maximum name length excluding TLD
+        required: false
+      count:
+        type: integer
+        description: How many candidates to return, default 10
+        required: false
+    model_visible: true
+    read_only: true
+  - name: hydrate_card
+    description: Internal UI helper. Must stay hidden from the model.
+    args: {}
+    model_visible: false
+    read_only: true
+widget:
+  max_state_tokens: 4000
+  uses_host_theme: true
+  display_modes:
+    - inline
+    - fullscreen
+discovery:
+  registry: true
+  chatgpt_listing: true
+  jsonld: true
+  llms_txt: true

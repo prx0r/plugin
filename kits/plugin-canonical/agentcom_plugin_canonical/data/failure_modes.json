@@ -1,0 +1,150 @@
+{
+  "generated_at": "2026-09-13",
+  "purpose": "Known official submission blockers plus recurring community/reviewer failure patterns. Community items are diagnostic signals, not policy.",
+  "failure_modes": [
+    {
+      "id": "annotations_required",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL",
+      "symptom": "One or more readOnlyHint/openWorldHint/destructiveHint values are missing or null.",
+      "deterministic_check": "Every model-visible tool must set all three to explicit booleans.",
+      "remediation": "Infer from actual implementation behavior, set explicitly, and add written justification."
+    },
+    {
+      "id": "annotation_behavior_mismatch",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL+COMMUNITY",
+      "symptom": "Review says annotations do not match tool behavior.",
+      "deterministic_check": "Cross-check declared annotations against mutation, external access, and irreversibility behavior flags plus source scan.",
+      "remediation": "Fix annotation or behavior; never tune annotations merely to look safer."
+    },
+    {
+      "id": "justification_required",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL",
+      "symptom": "Submission lacks scope/annotation explanations.",
+      "deterministic_check": "Non-empty justification for readOnly/openWorld/destructive on every tool.",
+      "remediation": "Explain each flag in terms of actual side effects and external access."
+    },
+    {
+      "id": "identity_mismatch",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL+COMMUNITY",
+      "symptom": "Developer name differs from verified individual/business identity.",
+      "deterministic_check": "Verify publisher identity and public URLs all use matching legal/publisher identity.",
+      "remediation": "Use the verified individual/business name or complete business verification before submitting."
+    },
+    {
+      "id": "oauth_reviewer_failure",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL+COMMUNITY",
+      "symptom": "Reviewer cannot sign in despite developer-mode success.",
+      "deterministic_check": "Fresh-incognito review account succeeds with zero MFA, SMS, email confirmation, invitation, private network, or manual setup.",
+      "remediation": "Create dedicated reviewer account and rehearse exact flow outside your normal session."
+    },
+    {
+      "id": "scan_required",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL",
+      "symptom": "MCP tool scan is stale/missing.",
+      "deterministic_check": "Current successful tool scan immediately before final submission.",
+      "remediation": "Rescan after every tool/schema/metadata deployment and only submit current production endpoint."
+    },
+    {
+      "id": "domain_verification_required",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL",
+      "symptom": "Remote MCP domain is not verified.",
+      "deterministic_check": "Complete OpenAI challenge at /.well-known/openai-apps-challenge for the submitted domain.",
+      "remediation": "Serve exact challenge and re-run verification before final submit."
+    },
+    {
+      "id": "test_case_inconsistent",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL+COMMUNITY",
+      "symptom": "Submitted test cases do not reliably reproduce expected tool choice/output on web/mobile.",
+      "deterministic_check": "Run all five positives and three negatives repeatedly against production and validate expected tool + essential output invariants.",
+      "remediation": "Make tools/output deterministic where possible, reduce ambiguous prompts, fix timeouts/schema drift, and retest web/mobile."
+    },
+    {
+      "id": "tool_description_ambiguous",
+      "severity": "HIGH",
+      "authority": "OFFICIAL+OPENAI_STAFF_COMMUNITY",
+      "symptom": "Wrong/no tool is chosen or reviewers reject unclear tool descriptions.",
+      "deterministic_check": "Description states what, when-to-use, when-not-to-use/distinction, and important prerequisites/limits; evaluate positive/negative routing suite.",
+      "remediation": "Generate candidate descriptions with the target model and hill-climb against routing evals."
+    },
+    {
+      "id": "too_many_overlapping_tools",
+      "severity": "HIGH",
+      "authority": "OFFICIAL_GUIDANCE+COMMUNITY",
+      "symptom": "Model hesitates between near-duplicate provider/API-shaped tools.",
+      "deterministic_check": "Pairwise semantic overlap review; flag internal-provider-shaped names and >6 public tools as heuristic.",
+      "remediation": "Expose user-intent tools; keep provider operations private behind adapters."
+    },
+    {
+      "id": "output_schema_drift",
+      "severity": "HIGH",
+      "authority": "OFFICIAL",
+      "symptom": "structuredContent does not match declared outputSchema or outputs vary unexpectedly.",
+      "deterministic_check": "Schema-validate every structured response in CI and integration tests.",
+      "remediation": "Version schema deliberately and return exact structured object with stable identifiers."
+    },
+    {
+      "id": "unofficial_pass_through",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL",
+      "symptom": "Plugin primarily proxies/scrapes another third-party service without authorized relationship or independent value.",
+      "deterministic_check": "Every third-party integration must document authorization, official API/partner access, ToS review, and whether product is primarily pass-through.",
+      "remediation": "Use authorized APIs/partnerships and add genuine independent normalization/ranking/workflow utility; if product remains primarily an unofficial connector, do not submit."
+    },
+    {
+      "id": "wildcard_or_weak_csp",
+      "severity": "HIGH",
+      "authority": "OFFICIAL",
+      "symptom": "Broad CSP or unexplained domains.",
+      "deterministic_check": "No wildcard connect/resource/frame domains; every domain justified by actual app behavior.",
+      "remediation": "Narrow CSP to exact required origins."
+    },
+    {
+      "id": "frame_domain_review_risk",
+      "severity": "MEDIUM",
+      "authority": "OFFICIAL",
+      "symptom": "iframe/frameDomains usage triggers stricter review or rejection.",
+      "deterministic_check": "If frameDomains non-empty, require written necessity and exact domain allowlist.",
+      "remediation": "Prefer native Apps SDK widget/tool flow; use frames only when essential."
+    },
+    {
+      "id": "excess_data_collection",
+      "severity": "BLOCKER_OR_HIGH",
+      "authority": "OFFICIAL",
+      "symptom": "Tool asks for raw conversation history, precise location, credentials, restricted or irrelevant personal data.",
+      "deterministic_check": "Static field-name scan + manual purpose/necessity review.",
+      "remediation": "Request only task-specific minimums; use host/location side channels; never collect prohibited restricted data."
+    },
+    {
+      "id": "commerce_policy_mismatch",
+      "severity": "BLOCKER",
+      "authority": "OFFICIAL",
+      "symptom": "Plugin tries to transact prohibited digital goods/services/subscriptions or embeds ads.",
+      "deterministic_check": "commerce enum and payment flows must conform to current physical-goods rules; serves_ads=false.",
+      "remediation": "Move unsupported commerce out of plugin or wait for policy/platform support."
+    },
+    {
+      "id": "directory_distribution_assumption",
+      "severity": "STRATEGIC",
+      "authority": "OPENAI_STAFF_COMMUNITY+COMMUNITY",
+      "symptom": "Team treats approval as automatic meaningful traffic.",
+      "deterministic_check": "Launch plan includes owned/partner distribution and invocation evals independent of directory traffic.",
+      "remediation": "Use literal app name/subtitle, validate direct invocation, and treat directory surfacing as upside not CAC model."
+    },
+    {
+      "id": "review_drift",
+      "severity": "STRATEGIC",
+      "authority": "COMMUNITY",
+      "symptom": "Long review cycle causes requirements/platform behavior to change between submission and decision.",
+      "deterministic_check": "Core backend/MCP deploys independently of store review; stable public tool contracts; preflight against current docs immediately before every submission/update.",
+      "remediation": "Keep store surface thin and rerun canonical checks on submission day."
+    }
+  ]
+}

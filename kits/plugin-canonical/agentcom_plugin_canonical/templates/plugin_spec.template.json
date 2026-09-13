@@ -1,0 +1,144 @@
+{
+  "app": {
+    "name": "Domain Checker by AgentCom",
+    "subtitle": "Check domain availability",
+    "description": "Checks exact domain availability and compares available domain options for naming workflows.",
+    "category": "BUSINESS",
+    "commerce": "none",
+    "has_ui": false,
+    "serves_ads": false,
+    "capabilities": [],
+    "starter_prompts": [],
+    "demo_recording_url": "https://example.com/review-demo",
+    "release_notes": "Initial submission."
+  },
+  "publisher": {
+    "verified_identity": false,
+    "identity_name_matches_public_urls": false,
+    "website_url": "https://agentcom.org",
+    "support_url": "https://agentcom.org/support",
+    "privacy_url": "https://agentcom.org/privacy",
+    "terms_url": "https://agentcom.org/terms"
+  },
+  "mcp": {
+    "url": "https://domains.agentcom.org/mcp",
+    "public_production": false,
+    "url_type": "Universal",
+    "auth_required": false,
+    "review_account_no_mfa": true,
+    "domain_verified": false,
+    "scan_current": false
+  },
+  "privacy": {
+    "policy_covers_categories": false,
+    "policy_covers_purposes": false,
+    "policy_covers_recipients": false,
+    "policy_covers_retention": false,
+    "policy_covers_controls": false
+  },
+  "ui": {
+    "connect_domains": [],
+    "resource_domains": [],
+    "frame_domains": [],
+    "redirect_domains": [],
+    "widget_uri_versioned": true
+  },
+  "tools": [
+    {
+      "name": "check_domain_availability",
+      "description": "Check whether an exact domain name is currently available to register. Use when the user asks whether a specific domain is available; do not use for general naming advice without an availability request.",
+      "inputs": [
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true,
+          "description": "Exact fully-qualified domain to check."
+        }
+      ],
+      "outputs": [
+        "domain",
+        "available",
+        "status",
+        "checked_at",
+        "registrar_options"
+      ],
+      "returns_structured_content": true,
+      "has_output_schema": true,
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "behavior": {
+        "mutates_state": false,
+        "accesses_public_or_open_ended_external_entities": true,
+        "irreversible_or_hard_to_reverse": false,
+        "sends_data_to_third_party": true
+      },
+      "annotation_justifications": {
+        "readOnlyHint": "True because this tool only reads current domain registration status and does not mutate user or external state.",
+        "openWorldHint": "True because this tool queries live public domain-registration infrastructure outside ChatGPT.",
+        "destructiveHint": "False because availability checks do not delete, overwrite, cancel, charge, or irreversibly modify anything.",
+        "idempotentHint": "True because repeating the same availability lookup has no additional side effect."
+      }
+    }
+  ],
+  "tests": {
+    "positive": [
+      {
+        "prompt": "Is pogtown.com available?",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "Is pogtown.com available?",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "Is pogtown.com available?",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "Is pogtown.com available?",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      },
+      {
+        "prompt": "Is pogtown.com available?",
+        "expected_tools": [
+          "check_domain_availability"
+        ]
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Why are .com domains valuable?",
+        "expected_tools": []
+      },
+      {
+        "prompt": "Why are .com domains valuable?",
+        "expected_tools": []
+      },
+      {
+        "prompt": "Why are .com domains valuable?",
+        "expected_tools": []
+      }
+    ]
+  },
+  "third_party_integrations": [
+    {
+      "name": "Example registrar/RDAP provider",
+      "authorized": false,
+      "official_api_or_partner_access": false,
+      "terms_reviewed": false,
+      "primary_pass_through": false
+    }
+  ]
+}

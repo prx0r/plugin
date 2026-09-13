@@ -1,0 +1,242 @@
+[
+  {
+    "id": "stale-validation-wizard-bug",
+    "topic": "review-ops",
+    "advice": "If the submission wizard shows validation errors you already fixed, change the MCP URL/tool form to force a refresh — stale errors were a known bug (fixed Apr 2026, may recur).",
+    "detail": "OpenAI changelog roundup Apr 2026: fixed wizard holding stale validation errors after MCP URL/tool changes.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/app-submission-flow-improvements-roundup/1379047/15",
+      "date": "2026-04-29"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "review-queue-unpredictable",
+    "topic": "review-ops",
+    "advice": "Assume review takes weeks with no SLA — submit domains first and let print/trades queue behind the learnings, not in parallel.",
+    "detail": "Forum threads (Jan–Jul 2026) show highly variable timelines; launch-period approvals were partners-only until January. Sequencing de-risks: one live approval teaches more than three pending submissions.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/chatgpt-app-store-is-open-for-submissions/1369611/20",
+      "date": "2026-01-27"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "backend-only-changes-maybe-no-resubmit",
+    "topic": "review-ops",
+    "advice": "Backend-only optimizations with an unchanged MCP surface may not need resubmission — but any tool/schema/widget change does.",
+    "detail": "Open community question (May 2026, unresolved in thread): confirm per-case. Design implication: keep the MCP contract stable and iterate behind adapters — exactly the plan.md rule.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/questions-about-mcp-server-changes-and-chatgpt-app-re-submission/1379394",
+      "date": "2026-05-06"
+    },
+    "confidence": "low",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "refresh-connector-after-change",
+    "topic": "review-ops",
+    "advice": "Refresh the developer-mode connector after every MCP tools/metadata change, or you will chase ghosts.",
+    "detail": "Top practitioner tip; stale tool lists during iteration are routinely mistaken for model/routing failures. Same discipline applies to Scan Tools rescans at submission.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183",
+      "date": "2026-03-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "avoid-iframes-version-widget-uris",
+    "topic": "review-ops",
+    "advice": "Avoid iframes/frame_domains unless essential, and version widget resource URIs — both add review friction and cache pain.",
+    "detail": "frame_domains triggers a sensitive review path (since relaxed for repeat approvals, but still). Unversioned widget URIs cause stale-UI ghost bugs. Domains V1 needs no UI at all.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183",
+      "date": "2026-03-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "minimize-data-collection",
+    "topic": "review-ops",
+    "advice": "Return only the data the task needs, and say so in the privacy policy — over-collection is a rejection vector.",
+    "detail": "Checklist item from practitioners; aligns with official minimum-necessary policy. Our DomainCheck/Quote shapes already exclude PII.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183",
+      "date": "2026-03-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "keep-local-submission-backup",
+    "topic": "review-ops",
+    "advice": "Keep the full submission packet (assets, descriptions, test cases) under version control — rejections have wiped dashboard data, forcing from-scratch resubmits.",
+    "detail": "Multiple devs report rejected apps losing all data (fix claimed deployed; don't rely on it). The chatgpt-app-submission.json skill output should be generated and committed per app.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/openai-needs-a-faster-review-funnel-already-approved-apps/1378915/11",
+      "date": "2026-04-14"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "update-reviews-slow-drifting",
+    "topic": "review-ops",
+    "advice": "Assume ~20-day update reviews against moving requirements — keep tool schemas frozen and iterate behind adapters.",
+    "detail": "philippexe: update rejected twice because SDK/tool requirements changed mid-queue. This is the operational reason for plan.md's stable-canonical-schema rule and decoupled deploy.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/submissions-take-so-long-that-requirements-change-which-leads-to-app-rejections/1392493",
+      "date": "2026-08-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "test-credentials-zero-friction",
+    "topic": "review-ops",
+    "advice": "Supply working test-user credentials requiring no MFA, email verification, or setup — missing/failing creds is the most common first rejection.",
+    "detail": "Xpoz rejected first on missing credentials, second on descriptions. Appeal via reply-to-rejection-email with Case ID; OAuth failures appeal fastest through openai-review@openai.com per Casey.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/app-review-xpoz-submission-rejected-twice-seeking-guidance-on-tool-descriptions/1386944",
+      "date": "2026-06-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "reviewer-telemetry-mandatory",
+    "topic": "review-ops",
+    "advice": "Ship reviewer-session telemetry with every submission — without it you argue with rejections blindly.",
+    "detail": "hunter_h assumed a reviewer was wrong; telemetry proved the reviewer hit a real bug; fixed and approved. Instrument connect/list/select/args/execute/render/error/theme/client/latency/result. mcp-signal's model-invisible tool-call pattern shows how to exfiltrate widget events past CSP with credentials server-side.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/chatgpt-apps-reject-with-same-feedback/1376488/2",
+      "date": "2026-05-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "deterministic-trio-failures",
+    "topic": "review-ops",
+    "advice": "Pre-check the three deterministic rejection classics: blank-data test case, dark/light theme support, zero dev links in widget CSP.",
+    "detail": "Tushar Dhar: fixed exactly these three and went from rejected to approved. All machine-checkable — encode in the submission gate, not memory.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/chatgpt-apps-reject-with-same-feedback/1376488",
+      "date": "2026-05-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "locked-after-publication",
+    "topic": "review-ops",
+    "advice": "Tool names, signatures and descriptions lock at publication — any change needs re-review, so freeze schemas early.",
+    "detail": "Official submission flow. This is the hard constraint behind stable canonical schemas and backend-only iteration. One version per app in review at a time; EU-residency projects cannot submit at all.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/deploy/submission",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "versionless-stable-endpoints",
+    "topic": "review-ops",
+    "advice": "Keep versionless MCP endpoints stable forever; submitted tools/list is snapshotted while calls hit the live backend.",
+    "detail": "Per OpenAI forum guidance on update submissions. Never move MCP infra for branding reasons — decouple display name from hostname on day one. Our manifest already separates capability page from mcp path.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/clarification-on-mcp-server-url-and-versioning-during-chatgpt-app-update-submission/1379705/2",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "metadata-token-budget",
+    "topic": "review-ops",
+    "advice": "Treat tool metadata brevity as a submission constraint: token-limit errors are now surfaced at submission time.",
+    "detail": "April submission update. Our description-length gate (40–600 chars) plus density gates enforce this mechanically; every annotation needs its explicit explanation.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/app-submission-flow-improvements-roundup/1379047/15",
+      "date": "2026-04-29"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "no-clever-ui-state-v1",
+    "topic": "review-ops",
+    "advice": "Ship V1 tools with zero dependence on update-model-context or widget state — ChatGPT is regressing on exactly those paths.",
+    "detail": "Reports: acknowledged-but-stale context, silently dropped updates, vanishing app selection, blank Android widgets, inconsistent Android auth. One prompt → one tool → deterministic structured result until the paths stabilize; track in compatibility.json.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/c/chatgpt-apps-sdk/42",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "paid-account-to-test",
+    "topic": "review-ops",
+    "advice": "Budget a paid ChatGPT account for testing — developer-mode app testing has required one.",
+    "detail": "MCPJam thread: builder could only test with a paid account. Factor into onboarding costs, not just submission.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/mcp/comments/1o1ojqf",
+      "date": "2025-11-01"
+    },
+    "confidence": "low",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  }
+]

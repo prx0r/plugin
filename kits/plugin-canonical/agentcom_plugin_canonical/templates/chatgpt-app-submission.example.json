@@ -1,0 +1,39 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Example App",
+    "subtitle": "Find verified providers",
+    "description": "Helps users find and compare suitable providers for a defined task.",
+    "category": "BUSINESS"
+  },
+  "tools": {
+    "find_providers": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves matching provider information and does not create or update records.",
+        "open_world_justification": "Queries authorized external provider sources on the public internet.",
+        "destructive_justification": "Does not delete, overwrite, send, purchase, or commit the user to an external action."
+      }
+    }
+  },
+  "positive_test_cases": [
+    {
+      "prompt": "Find a heating engineer near Nottingham for a boiler repair.",
+      "tools_triggered": [
+        "find_providers"
+      ],
+      "expected_output": "A short normalized list of eligible providers with source, service fit and currently available non-sensitive comparison data."
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "prompt": "Explain how a combi boiler works.",
+      "expected_behavior": "Do not trigger the plugin; answer as general information."
+    }
+  ]
+}

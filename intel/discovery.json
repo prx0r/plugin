@@ -1,0 +1,357 @@
+[
+  {
+    "id": "acp-april-2026-surface",
+    "topic": "discovery",
+    "advice": "Treat ACP as a sixth capability surface (MCP, MCP App, WebMCP, HTTP, ACP, website) — carts, feeds, orders, auth, MCP integration, negotiation, payment handlers, discounts.",
+    "detail": "April 2026 protocol snapshot. No implementation until a vertical needs checkout (domains barred as digital goods; print physical later). Direction only for now.",
+    "source": {
+      "type": "official",
+      "url": "https://github.com/agentic-commerce-protocol/agentic-commerce-protocol",
+      "date": "2026-04-17"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "sdk-v2-layout",
+    "topic": "discovery",
+    "advice": "Build new templates on MCP SDK v2 split packages; do not copy 2025 monolith tutorials.",
+    "detail": "Current layout: @modelcontextprotocol/client|server|node|express|ext-apps. Our server imports already use split paths (server/mcp.js); verify on every SDK bump.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "capability-url-shape",
+    "topic": "discovery",
+    "advice": "Use agentcom.org/<capability> pages, mcp.agentcom.org subdomains for infra, and brutally literal capability titles — no branded .com per tool.",
+    "detail": "Shape: agentcom.org/domain-availability (page), mcp.agentcom.org/domain-availability (infra), agentcom.org/tools/<x> (widget home). Separate exact-match domains only with independent acquisition value (domainavailability.com, llmprices.com). Reflected in apps/mcp manifest page fields.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/apps-search-only-returning-results-based-on-app-name-or-subtitle/1380113",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "tld-hierarchy",
+    "topic": "discovery",
+    "advice": "Parent on agentcom.org; .com for consumer transactional, .dev for dev tools, any reputable TLD for backends, .xyz fine for experiments.",
+    "detail": "No OpenAI protocol/ranking preference for .com found; MCP spec treats domain as host/security-origin concern. Strengthens tld-guidance-xyz with the full hierarchy.",
+    "source": {
+      "type": "community",
+      "url": "https://www.suped.com/learn/blocklists/what-is-the-most-abused-tld-top-level-domain-for-spam",
+      "date": "2026-07-29"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "commerce-direction-merchant-checkout",
+    "topic": "discovery",
+    "advice": "Design purchases as discovery-in-chat plus merchant-owned checkout with redirectUrl return — not native in-chat payment.",
+    "detail": "March 2026 shift: emphasis to product discovery + merchants' own checkout; users pay via card on file or entered in ChatGPT checkout UI (never raw PAN in chat); merchant of record stays merchant. Domains additionally barred from plugin commerce (digital goods) — lookup in chat, transact on site.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/commerce",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "webmcp-third-transport",
+    "topic": "discovery",
+    "advice": "Register the same 1–3 capability tools via WebMCP on agentcom.org pages — third transport beside MCP server and ChatGPT app, same metadata.",
+    "detail": "Starter in apps/web/src/webmcp.ts (feature-detect both attachment points, guarded no-op in Node). Caveats: origin-trial status, invisible to extension content scripts, ~no agent traffic yet — experiment lane. Verify registration on a schedule like a payment webhook; guard the load before the call.",
+    "source": {
+      "type": "official",
+      "url": "https://developer.chrome.com/docs/ai/webmcp/build-tools",
+      "date": "2026-08-26"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "subdomains-not-paths-or-separate-domains",
+    "topic": "discovery",
+    "advice": "Host each app on its own subdomain root (checker.agentcom.org), never a path, and prefer subdomains over separate domains.",
+    "detail": "Casey: non-root .well-known verification will never be supported (RFC-8615) — paths are out. Parent-origin challenge covers subdomains; one verified AgentCom identity, shared privacy/ToS/support pages, compounding reputation, lower cost. Separate .dev domains per app add fragmentation with zero evidenced review benefit. Register the parent NOW: new domains face ~30 days heightened scrutiny in any TLD.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/chatgpt-app-submissions-domain-verification-step-does-not-support-subpath-hosted-mcp-servers/1379021",
+      "date": "2026-04-15"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "tld-guidance-xyz",
+    "topic": "discovery",
+    "advice": "Host apps on high-trust TLDs (.org/.com/.dev); use .xyz freely inside suggestion inventory but never as our own trust surface.",
+    "detail": "No OpenAI TLD rule exists. Evidence: browsers/SSL/search treat .xyz equally, but perceived trust lags, corporate filters stay cautious, and abuse concentration is high (.xyz +103% regs; 47k listed in latest snapshot). TLD is a context clue, not a verdict — but our host domain is chosen once, so choose boring trust.",
+    "source": {
+      "type": "community",
+      "url": "https://www.suped.com/learn/blocklists/what-is-the-most-abused-tld-top-level-domain-for-spam",
+      "date": "2026-07-29"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "description-density-sweet-spot",
+    "topic": "discovery",
+    "advice": "Optimize descriptions for information density: specific enough to select, compact enough not to bloat context — test both failure directions.",
+    "detail": "545-site WebMCP study: vagueness and verbosity are opposite ends of one spectrum. Implemented as no-marketing + sibling-overlap gates + hill-climb length variants in packages/evals. Quality = intent specificity + differentiating constraints + argument semantics − prose − marketing − sibling overlap.",
+    "source": {
+      "type": "community",
+      "url": "https://x.com/sarah_edo",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "ui-domain-is-branding",
+    "topic": "discovery",
+    "advice": "Set ui.domain deliberately — on ChatGPT the app-name click can lead there, so it is acquisition surface, not just sandbox origin.",
+    "detail": "Cross-host builder finding (ext-apps discussion #557). Lint metadata for correctness AND commercial consequence; never leave domain unset or pointed at a placeholder.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "ship-machine-readable-surface",
+    "topic": "discovery",
+    "advice": "Ship manifest + llms.txt + JSON-LD with every capability from day one — MCP Apps are invisible to ordinary web discovery.",
+    "detail": "Implemented: /.well-known/agentcom.json, /llms.txt, /capability.jsonld served by apps/mcp with HTTP tests. JSON-LD proposal (ext-apps discussion #606) may never standardize; the cost is near zero anyway.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "round-trip-commerce",
+    "topic": "discovery",
+    "advice": "Design transaction tools for the return leg: approved redirect domains skip the interstitial and route the user back into the originating conversation.",
+    "detail": "ext-apps issue #678. Our checkout handoff must request the round trip, not an outbound link — affects place_print_order's successor and all future book_* tools.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "host-adapter-not-universal-object",
+    "topic": "discovery",
+    "advice": "Never emit one universal resource metadata object — adapt per negotiated host capabilities.",
+    "detail": "Datadog cross-host catalog: vendor field for one host breaks another, ui.domain formats differ, app-only visibility inconsistent, insets differ. Capability → detector → per-host adapter (ChatGPT/Claude/Cursor/VSCode/generic).",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "upstream-validator-convergence",
+    "topic": "discovery",
+    "advice": "Track (don't duplicate) the official MCP App validator proposal — conformance commoditizes upstream, our moat is compat + evals + telemetry.",
+    "detail": "ext-apps issue #673 (open): 'no canonical way to check conformance'. Verified open via API. Consume it when it lands; keep our gate focused on layers 2–7.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/modelcontextprotocol/ext-apps/issues/673",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "directory-search-name-subtitle-only",
+    "topic": "discovery",
+    "advice": "Directory search matches app name + 30-char subtitle only — put the query's keywords there, not in the long description.",
+    "detail": "Casey Chow (Apps platform team): searching long descriptions was 'more noisy and less helpful', so name/subtitle-only is intentional current behavior. OP confirmed 'education' in long descriptions stopped surfacing. Implication: long description is for humans post-click, not retrieval.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/apps-search-only-returning-results-based-on-app-name-or-subtitle/1380113",
+      "date": "2026-04-30"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "literal-app-names",
+    "topic": "discovery",
+    "advice": "Name each app as the literal user query (Domain Checker, Find a Tradesperson) under the AgentCom developer identity — clever brands don't retrieve.",
+    "detail": "Follows directly from name/subtitle-only search. Revisit only if description search returns or developer-reputation ranking is confirmed.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/apps-search-only-returning-results-based-on-app-name-or-subtitle/1380113",
+      "date": "2026-04-30"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "contextual-discovery-volume-reality",
+    "topic": "discovery",
+    "advice": "Do not model any revenue on contextual auto-discovery volume — a compliant, performant app saw ~50 users/day against ~5M matching weekly queries, decaying to 1–2/day.",
+    "detail": "georg-san's numbers; Jonathan_Labs reports zero traffic; multiple devs corroborate static category pages showing top brands only. Auto-suggest was announced but devs question whether it runs at all. Distribution must come from elsewhere (direct links, web, existing channels) until proven otherwise.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/when-do-our-apps-surface-to-users-clarification-requested/1379612/9",
+      "date": "2026-04-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "directory-listings-manual-static",
+    "topic": "discovery",
+    "advice": "Treat directory placement as editorial/manual, not algorithmic — categories are static and brand-weighted.",
+    "detail": "Casey: 'directory listings right now are fairly manual… experimenting with fair surfacing'; devs report unchanging static pages. Community's top asks: user ratings, usage-based ranking. None shipped as of latest crawl.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/when-do-our-apps-surface-to-users-clarification-requested/1379612/9",
+      "date": "2026-04-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "app-landing-pages-not-indexed",
+    "topic": "discovery",
+    "advice": "App directory landing pages are client-rendered with no indexable title/meta — don't spend backlink effort on them; host your own indexable landing pages.",
+    "detail": "AldiPower: crawlers see no useful HTML, external backlinks wasted. Build agentcom.org vertical pages as the SEO surface and deep-link into the directory.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/when-do-our-apps-surface-to-users-clarification-requested/1379612/9",
+      "date": "2026-04-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "hill-climb-tool-selection",
+    "topic": "discovery",
+    "advice": "Hill-climb tool metadata against measured tool-selection evals: clear intent + model-written descriptions + lots of evals is the entire known playbook.",
+    "detail": "Casey Chow verbatim: 'Making the suggested intent of the tool clear to the model, leaning on model-written language for tool descriptions (models are generally fairly good at writing for themselves), and writing lots of evals + hill-climbing on them.' Best practices 'extremely in flux'; docs deliberately vague. This is the closest thing to an official discovery guide.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+      "date": "2026-05-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "gui-on-top-of-mcp",
+    "topic": "discovery",
+    "advice": "Architect GUI-on-top-of-MCP (resources = UI, tools = actions) so the capability stays portable to Codex, Claude, Gemini and raw MCP clients.",
+    "detail": "Experienced builder framing; matches our core/surfaces split. Don't build an OpenAI-specific React monolith — the market graph is the moat, hosts are interchangeable.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pf4bvo/how_to_build_a_chatgpt_app/",
+      "date": "2025-12-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "free-plan-invocation-regression",
+    "topic": "discovery",
+    "advice": "Verify invocation on Free accounts, not just Plus — a May 2026 regression left Free accounts unable to invoke any apps.",
+    "detail": "Reported with screenshots across all apps. Add Free-tier invocation to the pre-submission checklist and re-verify after approval.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/when-do-our-apps-surface-to-users-clarification-requested/1379612/9",
+      "date": "2026-05-14"
+    },
+    "confidence": "low",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "six-layer-quality-model",
+    "topic": "discovery",
+    "advice": "Test all six layers independently (protocol, host compat, routing, execution, UI, discovery) plus observability — most builders test one or two.",
+    "detail": "Division of labor observed: spec-check shape → protocol+observability, MCPJam contract → routing+execution, probe apps → host quirks, Skybridge shape → compat, xmcp checklist → submission, forum history → review reality, ext-apps contributors → future spec. Our gate + evals + intel mirror this split.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/Roee-Tsur/mcp-spec-check",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "machine-readable-proof-x",
+    "topic": "discovery",
+    "advice": "Point enterprise prospects at X's machine surface (hosted MCP at api.x.com/mcp + docs MCP + OpenAPI + llms.txt + skill.md) as proof the machine-callable thesis is mainstream.",
+    "detail": "X exposes 200+ endpoints via Streamable HTTP MCP plus full agent-consumable docs. Validates 'companies expose themselves in machine-callable form'; our gap is the long tail that won't do it uniformly.",
+    "source": {
+      "type": "official",
+      "url": "https://docs.x.com/tools/mcp",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  }
+]

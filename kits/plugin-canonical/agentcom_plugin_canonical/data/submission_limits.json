@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-09-13",
+  "authority": "OpenAI official submission-errors documentation",
+  "limits": {
+    "package_name_max_chars": 64,
+    "display_name_max_chars": 30,
+    "short_description_max_chars": 30,
+    "long_description_max_chars": 4000,
+    "developer_name_max_chars": 80,
+    "capabilities_max_count": 20,
+    "capability_max_chars": 120,
+    "starter_prompts_exact_or_max": "up to 3",
+    "starter_prompt_max_chars": 128,
+    "starter_prompt_forbid_at_mentions": true,
+    "url_max_chars": 1024,
+    "url_requires_https": true,
+    "remote_mcp_positive_tests_required": 5,
+    "remote_mcp_negative_tests_required": 3,
+    "custom_ui_screenshot_width_px": 706,
+    "custom_ui_screenshot_height_min_px": 400,
+    "custom_ui_screenshot_height_max_px": 860,
+    "custom_ui_screenshot_rule": "one screenshot per starter prompt; screenshots disallowed if app has no custom UI"
+  },
+  "final_submission_remote_mcp": [
+    "production HTTPS MCP endpoint",
+    "completed domain verification challenge",
+    "current successful MCP tool scan",
+    "explicit tool annotations and justifications",
+    "demo recording URL",
+    "exactly five positive tests and three negative tests",
+    "release notes",
+    "reviewer OAuth credentials when auth is required",
+    "custom-UI screenshots only when custom UI exists"
+  ],
+  "source": "https://developers.openai.com/plugins/deploy/submission-errors"
+}

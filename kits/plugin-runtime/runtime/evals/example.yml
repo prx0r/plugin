@@ -1,0 +1,13 @@
+server: https://agentcom.example/mcp
+agent: openai/chatgpt
+test_cases:
+  - name: exact-domain-check
+    input_prompt: "check whether agentcom.org is registered"
+    expected_tool_call:
+      tool_name: check_domain
+      parameters: { domain: "agentcom.org" }
+  - name: sibling-disambiguation
+    input_prompt: "give me ten available names under 12 characters for an AI accounting startup"
+    expected_tool_call:
+      tool_name: suggest_names
+      parameters: { idea: "AI accounting startup", max_length: 12, count: 10 }

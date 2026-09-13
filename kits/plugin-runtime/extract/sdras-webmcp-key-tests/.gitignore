@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+*.local
+
+# Impeccable (design skill for Claude Code): the skill itself is committed in
+# .claude/, but not the per-platform engine binary (the launcher re-downloads
+# the version pinned in scripts/VERSION) or the machine-local hook settings.
+.claude/skills/impeccable/scripts/bin/
+.claude/settings.local.json
+.impeccable/config.local.json

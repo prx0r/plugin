@@ -1,0 +1,13 @@
+/* Global widget styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for monetization widgets */
+.products-container {
+  @apply mx-auto max-w-2xl;
+}
+
+.product-card {
+  @apply rounded-lg border p-4 transition-shadow hover:shadow-md;
+}

@@ -1,0 +1,161 @@
+{
+  "version": "2026-09-13",
+  "hard_gates": [
+    {
+      "id": "H001",
+      "rule": "The plugin must solve a clear conversational user intent and provide non-native, real utility.",
+      "source": "openai_guidelines",
+      "check": "manual+eval",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H002",
+      "rule": "Remote MCP server must be deployed at a stable public HTTPS URL for public submission.",
+      "source": "openai_submission",
+      "check": "manifest",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H003",
+      "rule": "Publisher identity must be verified and match public website/support/privacy/terms identity.",
+      "source": "openai_submission",
+      "check": "manifest",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H004",
+      "rule": "Every exposed tool must have unique specific action-oriented name and truthful intent-aligned description.",
+      "source": "openai_guidelines",
+      "check": "manifest+source-review",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H005",
+      "rule": "Every tool must explicitly declare readOnlyHint, openWorldHint and destructiveHint as booleans matching implementation behavior.",
+      "source": "openai_submission_skill",
+      "check": "manifest+source-review",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H006",
+      "rule": "Tool inputs must collect only minimum task-specific data; never request full conversation history/raw transcripts, credentials, payment card data, PHI, government IDs, MFA/OTP, or unnecessary precise location.",
+      "source": "openai_guidelines",
+      "check": "manifest+source-review",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H007",
+      "rule": "Tool responses must exclude unnecessary secrets, personal data, debug payloads, trace/request/session IDs and undisclosed internal identifiers.",
+      "source": "openai_submission",
+      "check": "manifest+integration-test",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H008",
+      "rule": "Third-party integrations must be authorized and terms-compliant. Do not submit a plugin whose primary function is an unofficial/pass-through connector.",
+      "source": "openai_guidelines",
+      "check": "manifest+legal-review",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H009",
+      "rule": "Authenticated review credentials must be fully featured and usable without MFA/SMS/email verification/new-account setup/private-network access.",
+      "source": "openai_submission",
+      "check": "manifest+manual",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H010",
+      "rule": "For remote MCP final submission, provide exactly five positive and exactly three negative review test cases.",
+      "source": "openai_submission",
+      "check": "manifest",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H011",
+      "rule": "Side effects must be explicit; tools that send/post/create/update/delete/book/order must not masquerade as read-only.",
+      "source": "openai_guidelines",
+      "check": "source-review",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H012",
+      "rule": "Model-readable metadata must not manipulate fair discovery, instruct model preference, disparage alternatives, or make unsupported comparative claims.",
+      "source": "openai_guidelines",
+      "check": "manifest",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H013",
+      "rule": "Plugins with UI must use narrow CSP. Wildcards and unnecessary domains are release blockers in AgentCom standard; frameDomains require explicit waiver because they increase review friction.",
+      "source": "openai_reference",
+      "check": "manifest",
+      "severity": "ERROR/WARN"
+    },
+    {
+      "id": "H014",
+      "rule": "If structuredContent is returned, outputSchema must describe the exact returned object.",
+      "source": "openai_reference",
+      "check": "manifest+source-review",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H015",
+      "rule": "Privacy policy must be public and describe collected personal-data categories, purposes, recipients, retention and user controls.",
+      "source": "openai_guidelines",
+      "check": "manifest+manual",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H016",
+      "rule": "Every required tool annotation must include a behavior-grounded written justification in the submission.",
+      "source": "openai_submission_errors",
+      "check": "manifest",
+      "severity": "ERROR"
+    },
+    {
+      "id": "H017",
+      "rule": "Remote MCP final submission must include a live demo recording URL and release notes.",
+      "source": "openai_submission_errors",
+      "check": "manifest",
+      "severity": "ERROR"
+    }
+  ],
+  "official_guidance": [
+    {
+      "id": "G001",
+      "rule": "Design tools from user goals rather than mirroring provider APIs.",
+      "source": "openai_tools"
+    },
+    {
+      "id": "G002",
+      "rule": "Separate read and write operations when permissions, safety or confirmations differ.",
+      "source": "openai_tools"
+    },
+    {
+      "id": "G003",
+      "rule": "Return stable identifiers and structured fields that support follow-up tool calls.",
+      "source": "openai_tools"
+    },
+    {
+      "id": "G004",
+      "rule": "Test overlapping tool descriptions and remove ambiguity.",
+      "source": "openai_tools"
+    },
+    {
+      "id": "G005",
+      "rule": "Keep plugin stable, responsive and complete; trial/demo plugins are not accepted.",
+      "source": "openai_guidelines"
+    },
+    {
+      "id": "G006",
+      "rule": "Avoid iframe-based UI unless essential.",
+      "source": "openai_guidelines"
+    },
+    {
+      "id": "G007",
+      "rule": "Use UI only when it materially improves the chat-native workflow; tool-only is valid.",
+      "source": "openai_submission"
+    }
+  ]
+}

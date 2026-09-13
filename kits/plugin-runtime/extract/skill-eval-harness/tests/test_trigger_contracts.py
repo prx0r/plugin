@@ -1,0 +1,520 @@
+"""Finite-state and recorded-wire proofs for trigger correctness by construction."""
+import json
+import unittest
+from pathlib import Path
+
+import skill_benchmark as sb
+from run_pi_trigger_eval import pi_invocation_outcome
+from trigger_contracts import (
+    CompleteTriggerResult,
+    CompletionEvidence,
+    IncompleteTriggerResult,
+    InvocationOutcome,
+    InvocationState,
+    TriggerDetection,
+    TriggerEvidenceKind,
+    TriggerExpectation,
+    TriggerObservation,
+    TriggerRepetitionIdentity,
+)
+
+FIXTURES = Path(__file__).parent / "fixtures" / "pi"
+
+
+class InvocationOutcomeInvariantTests(unittest.TestCase):
+    def test_process_constructor_classifies_every_exit_family(self):
+        cases = [
+            (0, InvocationState.COMPLETE, True, False),
+            (1, InvocationState.PROCESS_FAILED, False, False),
+            (124, InvocationState.PROCESS_FAILED, False, False),
+            (127, InvocationState.PROCESS_FAILED, False, False),
+        ]
+        for returncode, state, complete, timed_out in cases:
+            with self.subTest(returncode=returncode):
+                outcome = InvocationOutcome.from_process(
+                    stdout="", stderr="", returncode=returncode, elapsed_ms=0,
+                )
+                self.assertIs(outcome.state, state)
+                self.assertIs(outcome.observation_complete, complete)
+                self.assertIs(outcome.timed_out, timed_out)
+
+        self.assertIs(
+            InvocationOutcome.from_timeout(
+                stdout="", stderr="timeout", elapsed_ms=1).state,
+            InvocationState.TIMED_OUT,
+        )
+        self.assertIs(
+            InvocationOutcome.spawn_failed(
+                stderr="missing", elapsed_ms=1).state,
+            InvocationState.SPAWN_FAILED,
+        )
+
+    def test_direct_constructor_rejects_every_contradictory_state(self):
+        invalid = [
+            {"returncode": 1, "state": InvocationState.COMPLETE},
+            {"returncode": 0, "state": InvocationState.TIMED_OUT},
+            {"returncode": 1, "state": InvocationState.SPAWN_FAILED},
+            {"returncode": 0, "state": InvocationState.PROCESS_FAILED},
+            {"returncode": 0, "state": InvocationState.PROVIDER_FAILED},
+            {"returncode": 0, "state": InvocationState.HARNESS_FAILED},
+        ]
+        for fields in invalid:
+            with self.subTest(fields=fields), self.assertRaises((TypeError, ValueError)):
+                InvocationOutcome(stdout="", stderr="", elapsed_ms=0, **fields)
+
+    def test_nonzero_completion_requires_the_named_agent_window_transition(self):
+        failed = InvocationOutcome.from_process(
+            stdout='{"type":"result","subtype":"error_max_turns"}\n',
+            stderr="", returncode=1, elapsed_ms=2,
+        )
+        complete = failed.as_agent_window_complete()
+        self.assertTrue(complete.observation_complete)
+        self.assertEqual(complete.returncode, 1)
+        self.assertIs(complete.completion_evidence, CompletionEvidence.AGENT_WINDOW_EXHAUSTED)
+        with self.assertRaises(ValueError):
+            InvocationOutcome.from_process(stdout="", stderr="", returncode=0, elapsed_ms=0).as_agent_window_complete()
+        for ordinary_exit_code in (124, 127):
+            with self.subTest(ordinary_exit_code=ordinary_exit_code):
+                completed = InvocationOutcome.from_legacy_dict("fake", {
+                    "stdout": "", "stderr": "", "returncode": ordinary_exit_code,
+                    "timed_out": False, "elapsed_ms": 1, "observation_complete": True,
+                    "completion_evidence": "agent_window_exhausted",
+                    "invocation_state": "complete",
+                }, allow_nonzero_complete=True)
+                self.assertIs(completed.state, InvocationState.COMPLETE)
+
+    def test_legacy_boundary_rejects_truthy_strings_and_state_contradictions(self):
+        base = {
+            "stdout": "", "stderr": "", "returncode": 0,
+            "timed_out": False, "elapsed_ms": 1, "observation_complete": True,
+        }
+        invalid = [
+            {**base, "timed_out": "false"},
+            {**base, "observation_complete": "false"},
+            {**base, "elapsed_ms": None},
+            {**base, "observation_complete": False},
+        ]
+        for row in invalid:
+            with self.subTest(row=row), self.assertRaises((TypeError, ValueError)):
+                InvocationOutcome.from_legacy_dict("fake", row)
+        exited_124 = InvocationOutcome.from_legacy_dict("fake", {
+            **base, "returncode": 124, "timed_out": False,
+            "observation_complete": False,
+        })
+        self.assertIs(exited_124.state, InvocationState.PROCESS_FAILED)
+
+    def test_harness_failure_preserves_unmeasured_elapsed_time_as_unavailable(self):
+        outcome = InvocationOutcome.harness_failed("fixture setup failed")
+        self.assertIsNone(outcome.returncode)
+        self.assertIsNone(outcome.elapsed_ms)
+        self.assertFalse(outcome.observation_complete)
+
+    def test_metadata_is_immutable_and_cannot_shadow_derived_fields(self):
+        outcome = InvocationOutcome.from_process(
+            stdout="", stderr="", returncode=0, elapsed_ms=0,
+        ).with_metadata({"config_isolated": True})
+        with self.assertRaises(TypeError):
+            outcome.metadata["config_isolated"] = False  # type: ignore[index]
+        for reserved in ("stdout", "returncode", "timed_out", "observation_complete", "provider_error"):
+            with self.subTest(reserved=reserved), self.assertRaises(ValueError):
+                outcome.with_metadata({reserved: "collision"})
+        wire = outcome.as_legacy_dict()
+        self.assertEqual(wire["returncode"], 0)
+        self.assertFalse(wire["timed_out"])
+        self.assertTrue(wire["observation_complete"])
+
+
+class PiStreamContractTests(unittest.TestCase):
+    def test_recorded_success_stream_is_parsed_once_as_cumulative_usage(self):
+        raw = (FIXTURES / "lifecycle-success.jsonl").read_text(encoding="utf-8")
+        stream = sb.PiStream.parse(raw)
+        self.assertIsNone(stream.terminal_error)
+        self.assertEqual(stream.usage_normalized["total_tokens"], 15)
+        self.assertEqual(stream.cost_normalized["total_cost"], 0.015)
+        detection = sb.detect_trigger_records(stream.records, [Path("/tmp/pi-config/skills/demo/SKILL.md")])
+        self.assertTrue(detection.triggered)
+        _, metrics = sb.normalize_trace_records(list(stream.records), source="pi", pi_stream=stream)
+        self.assertEqual(metrics["total_tokens"], 15)
+        self.assertEqual(metrics["tool_calls"], 1)
+
+    def test_exit_zero_without_a_final_agent_end_is_a_protocol_failure(self):
+        for raw in (
+            '{"type":"agent_start"}\n',
+            '{"type":"turn_end","message":{"role":"assistant","stopReason":"stop"}}\n',
+        ):
+            with self.subTest(raw=raw):
+                process = InvocationOutcome.from_process(
+                    stdout=raw, stderr="", returncode=0, elapsed_ms=1,
+                )
+                invocation = pi_invocation_outcome(process)
+                self.assertIs(invocation.state, InvocationState.PROVIDER_FAILED)
+                self.assertIn("without a final agent_end", invocation.provider_error or "")
+                self.assertEqual(invocation.provider_payload.usage_normalized, {"source": "missing"})
+
+    def test_malformed_json_fails_even_when_a_valid_terminal_event_exists(self):
+        raw = 'not-json\n{"type":"agent_end","messages":[{"role":"assistant","stopReason":"stop","usage":{"totalTokens":3}}]}\n'
+        invocation = pi_invocation_outcome(InvocationOutcome.from_process(
+            stdout=raw, stderr="", returncode=0, elapsed_ms=1,
+        ))
+        self.assertIs(invocation.state, InvocationState.PROVIDER_FAILED)
+        self.assertIn("parse error", invocation.provider_error or "")
+        self.assertEqual(invocation.provider_payload.usage_normalized, {"source": "missing"})
+
+    def test_successful_retry_uses_only_the_final_attempt(self):
+        raw = (FIXTURES / "retry-then-success.jsonl").read_text(encoding="utf-8")
+        invocation = pi_invocation_outcome(InvocationOutcome.from_process(
+            stdout=raw, stderr="", returncode=0, elapsed_ms=1,
+        ))
+        self.assertIs(invocation.state, InvocationState.COMPLETE)
+        self.assertIsNone(invocation.provider_error)
+        self.assertEqual(invocation.provider_payload.usage_normalized["total_tokens"], 13)
+        self.assertEqual(invocation.provider_payload.cost_normalized["total_cost"], 0.013)
+
+    def test_exhausted_retries_use_the_final_provider_error(self):
+        raw = (FIXTURES / "retries-exhausted.jsonl").read_text(encoding="utf-8")
+        invocation = pi_invocation_outcome(InvocationOutcome.from_process(
+            stdout=raw, stderr="", returncode=0, elapsed_ms=1,
+        ))
+        self.assertIs(invocation.state, InvocationState.PROVIDER_FAILED)
+        self.assertEqual(invocation.provider_error, "final provider failure")
+        self.assertEqual(invocation.provider_payload.usage_normalized, {"source": "missing"})
+
+    def test_nonzero_process_with_terminal_provider_error_retains_process_failure(self):
+        raw = (FIXTURES / "provider-error-exit-zero.jsonl").read_text(encoding="utf-8")
+        invocation = pi_invocation_outcome(InvocationOutcome.from_process(
+            stdout=raw, stderr="", returncode=1, elapsed_ms=1,
+        ))
+        self.assertIs(invocation.state, InvocationState.PROCESS_FAILED)
+        self.assertEqual(invocation.returncode, 1)
+        self.assertIn("invalid model", invocation.provider_error or "")
+
+    def test_timeout_remains_a_timeout_when_its_partial_stream_has_no_terminal_event(self):
+        process = InvocationOutcome.from_timeout(
+            stdout='{"type":"agent_start"}\n', stderr="timeout", elapsed_ms=1,
+        )
+        invocation = pi_invocation_outcome(process)
+        self.assertIs(invocation.state, InvocationState.TIMED_OUT)
+        self.assertTrue(invocation.timed_out)
+        self.assertEqual(invocation.provider_payload.usage_normalized, {"source": "missing"})
+
+    def test_recorded_exit_zero_provider_error_becomes_one_failed_state(self):
+        raw = (FIXTURES / "provider-error-exit-zero.jsonl").read_text(encoding="utf-8")
+        process = InvocationOutcome.from_process(
+            stdout=raw, stderr="", returncode=0, elapsed_ms=3,
+        )
+        invocation = pi_invocation_outcome(process)
+        self.assertIs(invocation.state, InvocationState.PROVIDER_FAILED)
+        self.assertFalse(invocation.observation_complete)
+        self.assertIn("invalid model", invocation.provider_error or "")
+        stream = invocation.provider_payload
+        self.assertIsInstance(stream, sb.PiStream)
+        self.assertEqual(stream.usage_normalized, {"source": "missing"})
+        self.assertEqual(stream.cost_normalized, {"source": "missing"})
+
+        observation = TriggerObservation(
+            agent="pi", model="invalid", query="ordinary chat",
+            expectation=TriggerExpectation.DO_NOT_TRIGGER,
+            invocation=invocation,
+            detection=TriggerDetection.absent(),
+            usage={"source": "missing"}, cost={"source": "missing"},
+        )
+        self.assertIsNone(observation.passed)
+        self.assertIsInstance(observation.result, IncompleteTriggerResult)
+        with self.assertRaises(ValueError):
+            TriggerObservation(
+                agent="pi", model="invalid", query="ordinary chat",
+                expectation=TriggerExpectation.DO_NOT_TRIGGER,
+                invocation=invocation,
+                detection=TriggerDetection.absent(),
+                usage={"source": "trace_normalized", "total_tokens": 9},
+                cost={"source": "missing"},
+            )
+
+
+class TriggerObservationTruthTableTests(unittest.TestCase):
+    def _observation(self, *, usage, cost):
+        return TriggerObservation(
+            agent="pi", model=None, query="q",
+            expectation=TriggerExpectation.DO_NOT_TRIGGER,
+            invocation=InvocationOutcome.from_process(
+                stdout="", stderr="", returncode=0, elapsed_ms=0,
+            ),
+            detection=TriggerDetection.absent(), usage=usage, cost=cost,
+        )
+
+    def test_available_telemetry_requires_typed_numeric_evidence(self):
+        invalid_usage = [
+            {"source": "provider_reported"},
+            {"source": "provider_reported", "total_tokens": "banana"},
+            {"source": "trace_normalized", "unknown_tokens": 1},
+        ]
+        for usage in invalid_usage:
+            with self.subTest(usage=usage), self.assertRaises(ValueError):
+                self._observation(usage=usage, cost={"source": "missing"})
+        invalid_cost = [
+            {"source": "provider_reported"},
+            {"source": "provider_reported", "total_cost": "free", "currency": "USD"},
+            {"source": "trace_normalized", "total_cost": 1, "currency": "usd"},
+        ]
+        for cost in invalid_cost:
+            with self.subTest(cost=cost), self.assertRaises(ValueError):
+                self._observation(usage={"source": "missing"}, cost=cost)
+        valid = self._observation(
+            usage={"source": "trace_normalized", "total_tokens": 0},
+            cost={"source": "provider_reported", "total_cost": 0.0, "currency": "USD"},
+        )
+        self.assertEqual(valid.usage["total_tokens"], 0)
+        self.assertEqual(valid.cost["total_cost"], 0.0)
+
+    def test_only_complete_observations_inhabit_the_quality_result(self):
+        complete = InvocationOutcome.from_process(
+            stdout="", stderr="", returncode=0, elapsed_ms=0,
+        )
+        incomplete = InvocationOutcome.from_process(
+            stdout="", stderr="failure", returncode=1, elapsed_ms=0,
+        )
+        absent = TriggerDetection.absent()
+        present = TriggerDetection.from_texts(
+            TriggerEvidenceKind.MOUNTED_PATH, ["/tmp/skills/demo/SKILL.md"],
+        )
+        for invocation in (complete, incomplete):
+            for expectation in TriggerExpectation:
+                for detection in (absent, present):
+                    with self.subTest(state=invocation.state, expectation=expectation, triggered=detection.triggered):
+                        observation = TriggerObservation(
+                            agent="pi", model=None, query="q", expectation=expectation,
+                            invocation=invocation, detection=detection,
+                            usage={"source": "missing"}, cost={"source": "missing"},
+                        )
+                        expected = (
+                            detection.triggered == expectation.should_trigger
+                            if invocation.observation_complete else None
+                        )
+                        if invocation.observation_complete:
+                            self.assertIsInstance(observation.result, CompleteTriggerResult)
+                        else:
+                            self.assertIsInstance(observation.result, IncompleteTriggerResult)
+                        self.assertIs(observation.passed, expected)
+                        row = observation.as_row()
+                        self.assertIs(row["pass"], expected)
+                        self.assertIs(
+                            row["triggered"],
+                            detection.triggered if invocation.observation_complete else None,
+                        )
+                        self.assertIs(row["observation_complete"], invocation.observation_complete)
+
+    def test_observation_metadata_cannot_shadow_derived_row_fields(self):
+        base = self._observation(usage={"source": "missing"}, cost={"source": "missing"})
+        for reserved in ("returncode", "pass", "provider", "usage_normalized"):
+            with self.subTest(reserved=reserved), self.assertRaises(ValueError):
+                TriggerObservation(
+                    agent=base.agent, model=base.model, query=base.query,
+                    expectation=base.expectation, invocation=base.invocation,
+                    detection=base.detection, usage=base.usage, cost=base.cost,
+                    metadata={reserved: "collision"},
+                )
+
+    def test_invocation_metadata_cannot_shadow_experiment_metadata(self):
+        base = self._observation(usage={"source": "missing"}, cost={"source": "missing"})
+        for key in ("skill_tree_hash", "ablation", "protocol_sha256",
+                    "protocol_observation"):
+            invocation = base.invocation.with_metadata({key: "forged"})
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, "collides"):
+                TriggerObservation(
+                    agent=base.agent, model=base.model, query=base.query,
+                    expectation=base.expectation, invocation=invocation,
+                    detection=base.detection, usage=base.usage, cost=base.cost,
+                    metadata={key: "authoritative"},
+                )
+
+            with self.subTest(key=f"{key}-without-observation-copy"), \
+                 self.assertRaisesRegex(ValueError, "collides"):
+                TriggerObservation(
+                    agent=base.agent, model=base.model, query=base.query,
+                    expectation=base.expectation, invocation=invocation,
+                    detection=base.detection, usage=base.usage, cost=base.cost,
+                )
+
+    def test_nonzero_completion_and_each_evidence_kind_round_trip_through_json_row(self):
+        invocation = InvocationOutcome.from_process(
+            stdout="", stderr="", returncode=1, elapsed_ms=2,
+        ).as_agent_window_complete()
+        for kind in TriggerEvidenceKind:
+            with self.subTest(kind=kind):
+                detection = TriggerDetection.from_texts(kind, [f"evidence:{kind.value}"])
+                original = TriggerObservation(
+                    agent="claude", model="haiku", query="q",
+                    expectation=TriggerExpectation.TRIGGER,
+                    invocation=invocation, detection=detection,
+                    usage={"source": "missing"}, cost={"source": "missing"},
+                )
+                row = original.as_row()
+                self.assertEqual(row["completion_evidence"], "agent_window_exhausted")
+                self.assertEqual(row["evidence_typed"], [{"kind": kind.value, "text": f"evidence:{kind.value}"}])
+                restored = TriggerObservation.from_row(row)
+                self.assertIs(restored.invocation.state, InvocationState.COMPLETE)
+                self.assertIs(restored.invocation.completion_evidence, CompletionEvidence.AGENT_WINDOW_EXHAUSTED)
+                self.assertIs(restored.detection.evidence[0].kind, kind)
+                self.assertTrue(restored.passed)
+
+    def test_process_provenance_round_trips_independently_of_exit_code(self):
+        invocations = (
+            InvocationOutcome.spawn_failed(stderr="missing", elapsed_ms=1),
+            InvocationOutcome.from_process(
+                stdout="", stderr="exit 127", returncode=127, elapsed_ms=1),
+            InvocationOutcome.from_timeout(
+                stdout="", stderr="timeout", elapsed_ms=1),
+            InvocationOutcome.from_process(
+                stdout="", stderr="exit 124", returncode=124, elapsed_ms=1),
+        )
+        for invocation in invocations:
+            with self.subTest(state=invocation.state, code=invocation.returncode):
+                original = TriggerObservation(
+                    agent="stub", model=None, query="q",
+                    expectation=TriggerExpectation.DO_NOT_TRIGGER,
+                    invocation=invocation, detection=TriggerDetection.absent(),
+                    usage={"source": "missing"}, cost={"source": "missing"},
+                )
+                row = json.loads(json.dumps(original.as_row()))
+                restored = TriggerObservation.from_row(row)
+                self.assertIs(restored.invocation.state, invocation.state)
+                self.assertEqual(restored.invocation.returncode,
+                                 invocation.returncode)
+
+    def test_repetition_identity_round_trips_and_is_part_of_observation_identity(self):
+        base = self._observation(usage={"source": "missing"}, cost={"source": "missing"})
+        first = TriggerObservation(
+            agent=base.agent, model=base.model, query=base.query,
+            expectation=base.expectation, invocation=base.invocation,
+            detection=base.detection, usage=base.usage, cost=base.cost,
+            identity=TriggerRepetitionIdentity("query-a", 1),
+        )
+        second = TriggerObservation(
+            agent=base.agent, model=base.model, query=base.query,
+            expectation=base.expectation, invocation=base.invocation,
+            detection=base.detection, usage=base.usage, cost=base.cost,
+            identity=TriggerRepetitionIdentity("query-a", 2),
+        )
+        self.assertNotEqual(first, second)
+        self.assertEqual(TriggerObservation.from_row(first.as_row()).identity,
+                         TriggerRepetitionIdentity("query-a", 1))
+
+    def test_invocation_and_observation_metadata_round_trip_without_aggregation_loss(self):
+        invocation = InvocationOutcome.from_process(
+            stdout="", stderr="", returncode=0, elapsed_ms=1,
+            metadata={"adapter_tag": "codex-v1", "nested": {"isolated": True}},
+        )
+        original = TriggerObservation(
+            agent="codex", model="m", query="q",
+            expectation=TriggerExpectation.DO_NOT_TRIGGER,
+            invocation=invocation, detection=TriggerDetection.absent(),
+            usage={"source": "missing"}, cost={"source": "missing"},
+            metadata={
+                "skill_tree_hash": "tree",
+                "protocol_sha256": "protocol",
+                "protocol_observation": {"config_isolated": True},
+            },
+            identity=TriggerRepetitionIdentity("query-a", 1),
+        )
+        row = json.loads(json.dumps(original.as_row(), allow_nan=False))
+        restored = TriggerObservation.from_row(row)
+        self.assertEqual(dict(restored.invocation.metadata), dict(invocation.metadata))
+        self.assertEqual(dict(restored.metadata), dict(original.metadata))
+
+    def test_explicit_metadata_namespaces_must_agree_with_flattened_wire_fields(self):
+        row = self._observation(
+            usage={"source": "missing"}, cost={"source": "missing"},
+        ).as_row()
+        row["invocation_metadata"] = {"adapter_tag": "typed"}
+        row["adapter_tag"] = "forged"
+        with self.assertRaisesRegex(ValueError, "disagrees"):
+            TriggerObservation.from_row(row)
+        row = self._observation(
+            usage={"source": "missing"}, cost={"source": "missing"},
+        ).as_row()
+        row["invocation_metadata"] = {"score": 1}
+        row["score"] = True
+        with self.assertRaisesRegex(ValueError, "disagrees"):
+            TriggerObservation.from_row(row)
+
+    def test_metadata_rejects_non_string_keys_and_nonfinite_values(self):
+        for metadata in ({1: "bad key"}, {"score": float("nan")}):
+            with self.subTest(metadata=metadata), self.assertRaises((TypeError, ValueError)):
+                InvocationOutcome.from_process(
+                    stdout="", stderr="", returncode=0, elapsed_ms=1,
+                    metadata=metadata,
+                )
+            base = self._observation(
+                usage={"source": "missing"}, cost={"source": "missing"},
+            )
+            with self.subTest(observation_metadata=metadata), \
+                 self.assertRaises((TypeError, ValueError)):
+                TriggerObservation(
+                    agent=base.agent, model=base.model, query=base.query,
+                    expectation=base.expectation, invocation=base.invocation,
+                    detection=base.detection, usage=base.usage, cost=base.cost,
+                    metadata=metadata,
+                )
+        for constructor in (
+            lambda: InvocationOutcome.from_process(
+                stdout="", stderr="", returncode=0, elapsed_ms=1,
+                metadata=[]),
+            lambda: InvocationOutcome.harness_failed("failed", metadata=[]),
+        ):
+            with self.assertRaises(TypeError):
+                constructor()
+
+    def test_cost_pricing_notes_are_recursively_immutable(self):
+        notes = ["pinned provider table"]
+        observation = self._observation(
+            usage={"source": "missing"},
+            cost={
+                "source": "provider_reported", "total_cost": 0.0,
+                "currency": "USD", "pricing_notes": notes,
+            },
+        )
+        notes.append("mutated after construction")
+        self.assertEqual(
+            observation.cost["pricing_notes"], ("pinned provider table",))
+
+    def test_partial_or_invalid_repetition_identity_is_rejected(self):
+        row = self._observation(
+            usage={"source": "missing"}, cost={"source": "missing"}).as_row()
+        for mutation in (
+            {"query_id": "q"}, {"run_number": 1},
+            {"query_id": "q", "run_number": 0},
+            {"query_id": "", "run_number": 1},
+            {"query_id": "q", "run_number": True},
+        ):
+            with self.subTest(mutation=mutation), self.assertRaises((TypeError, ValueError)):
+                TriggerObservation.from_row({**row, **mutation})
+
+    def test_persisted_boundary_rejects_population_and_evidence_disagreement(self):
+        row = self._observation(
+            usage={"source": "missing"}, cost={"source": "missing"},
+        ).as_row()
+        for mutation in (
+            {"population": "answer"},
+            {"evidence": ["legacy-only"]},
+            {"triggered": True},
+            {"measurement_status": None},
+            {"trigger_evidence_observed": None},
+            {"timed_out": True},
+            {"provider_error": "bad", "pass": False},
+            {"provider_error": "bad", "pass": False,
+             "completion_evidence": "agent_window_exhausted"},
+        ):
+            with self.subTest(mutation=mutation), self.assertRaises((TypeError, ValueError)):
+                TriggerObservation.from_row({**row, **mutation})
+
+    def test_triggered_cannot_disagree_with_evidence(self):
+        absent = TriggerDetection.absent()
+        present = TriggerDetection.from_texts(TriggerEvidenceKind.SKILL_TOOL, ["skill: demo"])
+        self.assertFalse(absent.triggered)
+        self.assertTrue(present.triggered)
+        with self.assertRaises(TypeError):
+            TriggerDetection(("untyped evidence",))  # type: ignore[arg-type]
+
+
+if __name__ == "__main__":
+    unittest.main()

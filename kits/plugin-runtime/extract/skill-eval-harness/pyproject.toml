@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skill-eval-harness"
+version = "0.6.0"
+description = "Repo-agnostic Agent Skill evaluation harness with paired variants, holdout splits, repeated-run stats, script assertions, judge command backends, Anthropic-compatible exports, Jetty adapter support, and static review output."
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6", "regex==2026.7.19"]
+readme = "README.md"
+license = "MIT"
+authors = [{name = "Adewale"}]
+keywords = ["agent-skills", "benchmark", "evals", "codex", "gemini-cli", "jetty", "pi"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Testing",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "hypothesis>=6", "ruff==0.16.0", "ty==0.0.65"]
+
+[project.urls]
+Homepage = "https://github.com/adewale/skill-eval-harness"
+Repository = "https://github.com/adewale/skill-eval-harness"
+Issues = "https://github.com/adewale/skill-eval-harness/issues"
+Changelog = "https://github.com/adewale/skill-eval-harness/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/adewale/skill-eval-harness#readme"
+
+[project.scripts]
+skill-benchmark = "skill_benchmark:main"
+skill-pi-trigger-eval = "run_pi_trigger_eval:main"
+skill-trigger-matrix = "run_trigger_matrix:main"
+
+[tool.setuptools]
+py-modules = ["skill_benchmark", "run_pi_trigger_eval", "run_trigger_matrix", "ablation_model", "agent_capabilities", "artifact_contracts", "cli_contracts", "telemetry", "trigger_contracts", "trigger_reporting", "trace_contracts", "runner_contracts", "judge_contracts", "judge_verdict", "experimental_pairs", "jetty_contracts", "gemini_contracts", "grading_contracts", "invocation_contracts", "json_contracts", "manifest_contracts", "report_contracts", "text_contracts"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ty.src]
+# Production modules, executable tooling, and shipped examples are checked
+# automatically. Type-only assertions pin closed-domain precision/exhaustiveness.
+include = ["*.py", "scripts/**/*.py", "examples/**/*.py", "type_tests/*.py"]
+
+[tool.ruff]
+required-version = "==0.16.0"
+
+[tool.ruff.lint.per-file-ignores]
+# These parsers intentionally normalize every malformed wire/schema value to
+# ValueError as part of their public validation contract.
+"ablation_model.py" = ["F401", "TRY004"]
+"experimental_pairs.py" = ["PYI034", "TRY004"]
+"gemini_contracts.py" = ["TRY004"]
+"grading_contracts.py" = ["PYI034", "TRY004"]
+"judge_verdict.py" = ["TRY004"]
+"invocation_contracts.py" = ["PYI034", "TRY004"]
+"manifest_contracts.py" = ["PYI034", "TRY004"]
+"report_contracts.py" = ["PYI034", "TRY004"]
+"runner_contracts.py" = ["TRY004"]
+"telemetry.py" = ["TRY004"]
+# Runner boundaries must report arbitrary provider/CLI failures as evaluation
+# results, and the matrix's class attributes are immutable fixture shapes.
+"run_pi_trigger_eval.py" = ["F401"]
+"run_trigger_matrix.py" = ["BLE001", "F401", "RUF012"]
+"skill_benchmark.py" = ["BLE001", "F401", "S112"]
+# Test classes use container-valued fixtures, while nested patch contexts make
+# teardown ownership explicit.
+"tests/**/*.py" = ["BLE001", "RUF012", "SIM117"]

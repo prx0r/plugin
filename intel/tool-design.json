@@ -1,0 +1,120 @@
+[
+  {
+    "id": "untrusted-content-hint",
+    "topic": "tool-design",
+    "advice": "Flag tools returning user-generated or outside content with untrustedContentHint so agents treat it as data, not instructions.",
+    "detail": "WebMCP convention (Chrome/Moz docs). Applies to MCP too: trades reviews, provider messages, and any quoted third-party text need the flag once hosts enforce it; adopt the field now so the gate is ready.",
+    "source": {
+      "type": "official",
+      "url": "https://developer.chrome.com/docs/ai/webmcp/build-tools",
+      "date": "2026-08-26"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["trades", "print"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "recovery-guidance-errors",
+    "topic": "tool-design",
+    "advice": "Every error must name the next valid action (wrong state, bad params, empty results, rule violations) — never raw dumps or silence.",
+    "detail": "Chrome's build-tools patterns map 1:1 onto our FailureCodes; needs_user_decision with allowedActions is the compliant shape. Implemented as recoveryError() in apps/web; audit each new failure for its recovery sentence.",
+    "source": {
+      "type": "official",
+      "url": "https://developer.chrome.com/docs/ai/webmcp/build-tools",
+      "date": "2026-08-26"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "versioned-rules",
+    "topic": "tool-design",
+    "advice": "Version-stamp every platform rule with introduced/last_verified/source/host/spec_version/confidence — never encode docs as timeless truth.",
+    "detail": "xmcp: older Apps SDK syntax already aged out; current MCP Apps _meta.ui format replaced legacy _meta.openai (widgetAccessible, invoking/invoked strings have no MCP equivalent). Our intel items carry last_checked/status for exactly this; re-verify quarterly.",
+    "source": {
+      "type": "community",
+      "url": "https://xmcp.dev/blog/build-and-submit-gpt-apps",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "portable-capability-layer",
+    "topic": "tool-design",
+    "advice": "Build capabilities against standard MCP Apps with the ChatGPT surface as an overlay — never fork tool identity per host.",
+    "detail": "Skybridge: always-on standard transport + optional proprietary overlay detected at load, per-method routing, dual metadata emit, content-hash cache busters. ext-apps ships migrate-oai-app skill — near-official convergence acknowledgment. Our capability → transport → view split already matches; adopt their migration checklist (CSP-origin audit, CORS set, grep sweep) when we add UI.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/alpic-ai/skybridge",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "tiny-pathological-probe-apps",
+    "topic": "tool-design",
+    "advice": "Learn platform boundaries with tiny single-purpose probe apps, not the flagship — then promote findings to gate checks.",
+    "detail": "Gavin Ching speedran ~10 micro-apps and found: no write tool calls on mobile, PIP disappearing on non-widget follow-ups, all widgets/resources loaded at connection time, wss:// CSP coercion bug. Each boundary becomes one probe app + one gate check + one intel entry.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/lessons-learnt-from-speedrunning-chatgpt-apps/1366805",
+      "date": "2026-03-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "per-tool-hint-justification",
+    "topic": "tool-design",
+    "advice": "Write a distinct, behavior-true justification per tool hint — copy-pasted hint text across tools draws rejection questions.",
+    "detail": "Community question (unresolved): is repeating one generic openWorld justification acceptable? Assume no. Our 9 tools each need their own reason recorded — the submission skill's tool-hint justifications section exists for exactly this.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/mcp/comments/1ps1sr5/my_experience_submitting_my_first_chatgpt_app",
+      "date": "2025-12-21"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "intent-language-descriptions",
+    "topic": "tool-design",
+    "advice": "Describe user intent, not implementation — models select tools on description semantics, and review checks it.",
+    "detail": "Official define-tools guide + announcement discovery mechanics agree: 'Find vetted local tradespeople…' beats 'Comprehensive lead-generation platform'. Audit all 9 tool descriptions against this before submitting.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/plugins/plan/tools",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "few-boring-tools",
+    "topic": "tool-design",
+    "advice": "Ship 3–9 boring, reliable tools per app — never mirror internal APIs and never expose supplier operations.",
+    "detail": "Matches plan.md's core rule and OpenAI's tightly-scoped guidance. Our server exposes 9 intent verbs, zero supplier-named ops (transport test asserts this).",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/plugins/plan/tools",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  }
+]

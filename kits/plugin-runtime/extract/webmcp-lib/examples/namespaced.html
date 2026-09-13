@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Namespaced API - webmcp-lib Example</title>
+</head>
+<body>
+  <h1>Namespaced API</h1>
+  <p>Check the console for registered tools on <code>window.MyApp</code></p>
+
+  <script src="../test/webmcp-polyfill.js"></script>
+  <script>
+    window.MyApp = {
+      /**
+       * Starts the application
+       * @param {string} mode "dev" or "prod"
+       */
+      start(mode) {
+        console.log(`Starting in ${mode} mode`);
+      },
+      
+      /**
+       * Stops the application
+       */
+      stop() {
+        console.log('Stopping');
+      }
+    };
+  </script>
+
+  <script type="module">
+    import { exposeToWebMCP } from '../src/index.js';
+    
+    setTimeout(() => {
+      // Pass the root object and limit depth
+      exposeToWebMCP({ root: window.MyApp, maxDepth: 1 }).then(tools => {
+        console.log("Registered MyApp Tools:", tools.map(t => t.name));
+      });
+    }, 100);
+  </script>
+</body>
+</html>

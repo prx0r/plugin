@@ -1,0 +1,78 @@
+{
+  "version": "2026-09-13",
+  "decay_policy": "Revalidate OPENAI_STAFF_COMMUNITY after 30 days and COMMUNITY/REDDIT after 14 days before treating as current.",
+  "items": [
+    {
+      "id": "A001",
+      "confidence": 0.95,
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "freshness": "medium",
+      "claim": "Clear intended tool intent + model-written tool language + lots of routing evals/hill-climbing are among the few explicit staff recommendations for discovery/selection optimization.",
+      "action": "Maintain tool-selection evals in CI; generate multiple description variants and select by measured precision/recall.",
+      "source": "casey_metadata"
+    },
+    {
+      "id": "A002",
+      "confidence": 0.85,
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "freshness": "low",
+      "claim": "Directory keyword search focused heavily on title/subtitle as of April 2026.",
+      "action": "Use literal customer-facing names/subtitles that map to user intent, but do not keyword-stuff.",
+      "source": "casey_search"
+    },
+    {
+      "id": "A003",
+      "confidence": 0.9,
+      "tier": "OPENAI_STAFF_COMMUNITY",
+      "freshness": "medium",
+      "claim": "Automatic/organic discovery has been immature and uneven; directory placement is not guaranteed distribution.",
+      "action": "Treat ChatGPT distribution as upside, not your only acquisition channel; build direct deep-link/website distribution and make explicit @ invocation excellent.",
+      "source": "casey_discovery"
+    },
+    {
+      "id": "A004",
+      "confidence": 0.85,
+      "tier": "COMMUNITY_EXPERIENCE",
+      "freshness": "medium",
+      "claim": "Auth and review flows are frequent failure points.",
+      "action": "Delay auth until a user action truly requires it; offer read-only/no-auth discovery where possible; maintain reviewer fixture account.",
+      "source": "community_best_practices"
+    },
+    {
+      "id": "A005",
+      "confidence": 0.85,
+      "tier": "COMMUNITY_EXPERIENCE",
+      "freshness": "medium",
+      "claim": "iframes/CSP/widget caching add disproportionate review/debug friction.",
+      "action": "Default to tool-only or native lightweight widget; version widget URIs; no iframe unless essential.",
+      "source": "community_best_practices"
+    },
+    {
+      "id": "A006",
+      "confidence": 0.9,
+      "tier": "HEURISTIC",
+      "freshness": "current",
+      "claim": "A tiny semantic tool surface is easier for models to select correctly than a provider-shaped API mirror.",
+      "action": "Target 3-6 model-visible tools per vertical unless evals justify more; keep provider methods private.",
+      "source": "openai_tools"
+    },
+    {
+      "id": "A007",
+      "confidence": 0.95,
+      "tier": "HEURISTIC",
+      "freshness": "current",
+      "claim": "The durable moat should live in external reality (authorized provider graph, normalized schema, quotes, availability, quality/reliability observations), not in generic orchestration ChatGPT can reproduce.",
+      "action": "Own provider adapters/data/standards; let ChatGPT own reasoning and conversational workflow.",
+      "source": "openai_guidelines"
+    },
+    {
+      "id": "A008",
+      "confidence": 0.8,
+      "tier": "COMMUNITY_EXPERIENCE",
+      "freshness": "high",
+      "claim": "Review requirements and infrastructure can change faster than review cycles.",
+      "action": "Keep MCP schemas stable; change provider routing behind stable contracts; re-fetch docs on submission day.",
+      "source": "review_latency"
+    }
+  ]
+}

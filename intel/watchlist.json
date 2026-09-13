@@ -1,0 +1,190 @@
+{
+  "updated": "2026-09-13",
+  "note": "Signal over hype: only people shipping MCPs, getting rejected, testing invocation, or answering from inside OpenAI. Re-check quarterly; drop anyone who goes quiet or pivots to influencer content.",
+  "accounts": [
+    {
+      "handle": "andreban / Andre Bandarra",
+      "platform": "x",
+      "url": "https://x.com/andreban",
+      "why": "545-site WebMCP tool-definition study (vagueness vs verbosity) — direct input to our density gates. Most immediately useful new find.",
+      "priority": "watch-closest",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "domfarolino",
+      "platform": "github",
+      "url": "https://github.com/modelcontextprotocol/ext-apps/issues/603",
+      "why": "Protocol/web-platform performance (HTML streaming proposal); pushes performance-level issues not tutorials.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "sarah_edo / Sarah Drasner",
+      "platform": "x",
+      "url": "https://x.com/sarah_edo",
+      "why": "Chrome AI/web ecosystem lead; amplifies empirical WebMCP work. Direction + amplification, not implementation.",
+      "priority": "skim",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "Paul_Kinlan",
+      "platform": "x + web",
+      "url": "https://x.com/Paul_Kinlan",
+      "why": "Agent discovery experiments (URLs in prompts changing outputs); adjacent to our discover/cite/use problem.",
+      "priority": "skim",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "hydrosquall",
+      "platform": "github",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "why": "Datadog MCP Apps across 5 hosts; issue history is the best public cross-host failure catalog.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "liady / Liad Yosef",
+      "platform": "github",
+      "url": "https://github.com/modelcontextprotocol/ext-apps/issues/673",
+      "why": "MCP Apps spec author pushing the official validator; upstream direction determines what we consume vs build.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "fredericbarthelet",
+      "platform": "github",
+      "url": "https://github.com/modelcontextprotocol/ext-apps/issues/201",
+      "why": "Apps SDK vs MCP Apps difference matrix + host-specific metadata factories — portability reference.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "qchuchu",
+      "platform": "github",
+      "url": "https://github.com/qchuchu/finary-mcp",
+      "why": "Shipped real-world MCP app specs (not toys); Skybridge edge cases.",
+      "priority": "skim",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "yannj-fr / Yann Jouanin",
+      "platform": "github",
+      "url": "https://github.com/yannj-fr",
+      "why": "MCP App discovery, portable origins, JSON-LD discovery proposals — aligned with our machine-readable surface.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "casey-chow",
+      "platform": "community.openai.com",
+      "url": "https://community.openai.com/u/casey-chow/activity",
+      "why": "Apps developer-platform team; answers implementation, submission, discovery, MCP questions with unusual candor. Source of hill-climb doctrine and heavy-investment confirmation.",
+      "priority": "watch-closest",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "gching / Gavin Ching",
+      "platform": "community.openai.com + x",
+      "url": "https://community.openai.com/t/lessons-learnt-from-speedrunning-chatgpt-apps/1366805",
+      "why": "Best empirical Apps SDK experimenter (~10 probe apps); platform-boundary findings (mobile writes, PIP lifecycle, connection-time loading, CSP quirks).",
+      "priority": "watch-closest",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "mcpjams / MCPJam",
+      "platform": "github + x",
+      "url": "https://github.com/MCPJam",
+      "why": "Tool-selection evals + inspector + reference implementation; eval contract and CI-gating patterns adopted in packages/evals.",
+      "priority": "watch-closest",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "Roee-Tsur / Roee Tsur",
+      "platform": "github",
+      "url": "https://github.com/Roee-Tsur",
+      "why": "mcp-signal (widget telemetry past CSP) + mcp-spec-check (deterministic probes, fixture-validated). S-tier for our gate + observability. Follow GitHub activity over X.",
+      "priority": "watch-closest",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "alpic-ai / QChuret",
+      "platform": "github + x",
+      "url": "https://github.com/alpic-ai/skybridge",
+      "why": "Skybridge dual-runtime abstraction; what survives across clients. Cloned locally — mine special-cases as platform signals.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "0xkoller / xmcp",
+      "platform": "github + x",
+      "url": "https://github.com/basementstudio/xmcp",
+      "why": "Submission DX details (dark mode, syntax aging, _meta.ui format); versioned-rules doctrine source.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "ext-apps contributors",
+      "platform": "github",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "why": "Upstream spec of the portable app primitive; contributors/issues show tomorrow's platform first. Cloned locally.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "@OpenAIDevs",
+      "platform": "x",
+      "url": "https://x.com/OpenAIDevs",
+      "why": "Official developer account; platform, Codex and agent-ecosystem changes.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "hunter_h / Hunter Hillegas",
+      "platform": "community.openai.com + blog",
+      "url": "https://hunterhillegas.com/",
+      "why": "Shipped ChatGPT/MCP apps (Enzo Reader); practical notes (server instructions as model user-manual; review telemetry deltas of weeks). Confirmed same person across forum and blog.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "Jonathan_Labs",
+      "platform": "community.openai.com",
+      "url": "https://community.openai.com/u/Jonathan_Labs/activity",
+      "why": "Most persistent approval/review-tracker; catalogues failure modes (data deletion on reject, static directory, funnel speed) with screenshots.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "georg-san",
+      "platform": "community.openai.com",
+      "url": "https://community.openai.com/u/georg-san/activity",
+      "why": "Publishes real volume numbers (~50/day → 1–2/day). Ground truth for discovery-volume modeling.",
+      "priority": "watch",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "@composio",
+      "platform": "x",
+      "url": "https://x.com/composio",
+      "why": "Lives at the tool/API integration layer; real agent-tool plumbing experience adjacent to our adapters.",
+      "priority": "skim",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "MCPJam (matt8p)",
+      "platform": "github + reddit r/mcp",
+      "url": "https://www.reddit.com/r/mcp/comments/1o1ojqf",
+      "why": "Open-source Apps SDK testing tooling built because native debugging was painful; testing-workflow ideas and PR surface.",
+      "priority": "skim",
+      "last_checked": "2026-09-13"
+    },
+    {
+      "handle": "TheodorNEngoy / gching",
+      "platform": "community.openai.com",
+      "url": "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183",
+      "why": "Condensed practitioner checklist (refresh connector, annotations early, avoid iframes, version widget URIs, minimize data).",
+      "priority": "skim",
+      "last_checked": "2026-09-13"
+    }
+  ]
+}

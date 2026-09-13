@@ -1,0 +1,106 @@
+[
+  {
+    "id": "first-wave-rubric",
+    "topic": "tool-design",
+    "advice": "Gate new capabilities on the 8-criterion rubric: unknowable-from-weights, live/exact, obvious trigger, few args, verifiable answer, fast, no auth, no UI.",
+    "detail": "Reference tool (domain availability) passes 8/8. Score every candidate vertical before building; experiments that fail 3+ criteria are research, not products.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183",
+      "date": "2026-09-13"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "abc-metadata-experiments",
+    "topic": "tool-design",
+    "advice": "Run fixed corpora across app/tool/description variants and bank per-variant selection rates — first run recorded 2026-09-13.",
+    "detail": "registry/experiments.json defines variants; `studio experiment` runs them via the similarity proxy and writes registry/results/. B-availability/C-finder tied 0.80, A-checker 0.67 on run one. Re-run with model judge before submission decisions.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "eval-loop-hill-climb",
+    "topic": "tool-design",
+    "advice": "Run the closed loop as SOP: real usage failures → new eval cases → candidate metadata → routing benchmark → ship winner.",
+    "detail": "Operational form of Casey's hill-climbing. Every metadata edit (name, description, subtitle, schema, param wording) must move measured precision/recall before shipping.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+      "date": "2026-05-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "negative-evals-required",
+    "topic": "tool-design",
+    "advice": "Maintain explicit should-NOT-trigger evals per vertical — review demands them and selection quality needs them.",
+    "detail": "Submission bar is 5 positive + 3 negative minimum; our bar should be thousands. Starter pairs: boiler repair request vs how-boilers-work; domain availability vs why-.coms-valuable; hoodie order vs what-is-DTG. Track P(tool|irrelevant) alongside recall.",
+    "source": {
+      "type": "community",
+      "url": "https://www.reddit.com/r/ChatGPT/comments/1pr8y4t/just_submitted_my_mcp_server_to_the_openai_apps/",
+      "date": "2025-12-01"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "eval-repo-layout",
+    "topic": "tool-design",
+    "advice": "Standardize evals per router as six JSONL files: positives, negatives, ambiguous, tool_selection, parameter_extraction, ranking.",
+    "detail": "Seed volumes: domains ~5k utterances, trades 10k+. CI reports precision, recall, false-positive rate, parameter accuracy. This file set is a candidate internal moat.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+      "date": "2026-05-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "model-writes-own-interface",
+    "topic": "tool-design",
+    "advice": "Generate candidate tool descriptions with the model, then benchmark the model's own routing on them — interfaces optimized by their consumer.",
+    "detail": "Casey's 'models are fairly good at writing for themselves'. Concretes: prompt GPT for 5 description variants per tool, score each on the eval set, keep the winner. Re-run when base models change.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/can-app-metadata-and-tool-descriptions-improve-how-chatgpt-discovers-tools-from-installed-apps/1382558",
+      "date": "2026-05-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "latency-budgets",
+    "topic": "review-ops",
+    "advice": "Enforce p95 <1s for cached discovery, <2s for fresh lookups; never block a synchronous tool on humans — split RFQ into request/get.",
+    "detail": "Community best-practice consensus + our plan: search returns immediately, request_* creates async work, get_* polls. Our domains live RDAP already measures ~100–400ms, inside budget.",
+    "source": {
+      "type": "community",
+      "url": "https://community.openai.com/t/getting-started-with-chatgpt-apps-sdk-tips-and-best-practices/1367183",
+      "date": "2026-03-01"
+    },
+    "confidence": "medium",
+    "status": "anecdotal",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  }
+]

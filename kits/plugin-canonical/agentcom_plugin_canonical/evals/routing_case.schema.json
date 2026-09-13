@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "required": [
+    "id",
+    "prompt",
+    "should_trigger",
+    "expected_tool",
+    "reason"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "prompt": {
+      "type": "string"
+    },
+    "should_trigger": {
+      "type": "boolean"
+    },
+    "expected_tool": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

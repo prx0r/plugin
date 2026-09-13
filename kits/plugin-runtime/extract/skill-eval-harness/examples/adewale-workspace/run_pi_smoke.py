@@ -1,0 +1,377 @@
+#!/usr/bin/env python3
+"""Run a bounded Pi smoke baseline from shared-benchmark manifests.
+
+This is intentionally small: it executes selected case IDs with `with_skill` and
+`without_skill`, saves outputs/metadata in each repo, then lets
+skill_benchmark.py grade/aggregate them.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+from typing import Any
+
+HARNESS_ROOT = Path(__file__).resolve().parents[2]
+if str(HARNESS_ROOT) not in sys.path:
+    sys.path.insert(0, str(HARNESS_ROOT))
+from ablation_model import TIMEOUT_FAILURE, Provenance
+from skill_benchmark import (
+    _copy_skill_root,
+    ablation_variant_population,
+    canonical_skill_tree_hash,
+    detect_trigger,
+    materialized_tree_for_variant,
+    normalize_cost,
+    normalize_usage,
+    variant_instruction,
+    write_trace_artifacts,
+)
+
+# Workspace-specific example: by default this assumes the harness directory is a
+# sibling of the skill repos. Override with SKILL_EVAL_WORKSPACE_ROOT.
+ROOT = Path(os.environ.get("SKILL_EVAL_WORKSPACE_ROOT", Path(__file__).resolve().parents[3])).resolve()
+
+DEFAULT_SELECTION = {
+    "anti-slop-writing": ["neg-robust-with-mechanism"],
+    "audit-skill": ["pos-sql-injection-path"],
+    "cfdoctor": ["pos-worker-kv-rate-limit"],
+    "good-pr": ["pos-security-meaningless-test"],
+    "good-readme": ["pos-renamed-api"],
+    "good-repo": ["neg-tiny-personal-experiment"],
+    "guardrails-skill": ["pos-stop-prod-no-tests"],
+    "slide-maker": ["neg-hardcoded-colors"],
+    "swiss-poster-skill": ["pos-poster-composition"],
+    "testing-best-practices": ["neg-no-red-claim"],
+}
+
+
+def load_manifest(repo: str) -> dict[str, Any]:
+    return json.loads((ROOT / repo / "evals" / "shared-benchmark.json").read_text(encoding="utf-8"))
+
+
+def output_from_events(stdout: str) -> tuple[str, dict[str, Any]]:
+    final_text = ""
+    usage: dict[str, Any] = {}
+    model = None
+    provider = None
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") in {"message_end", "turn_end"}:
+            msg = event.get("message") or {}
+            if msg.get("role") == "assistant":
+                texts = [c.get("text", "") for c in msg.get("content", []) if c.get("type") == "text"]
+                if texts:
+                    final_text = "\n".join(texts)
+                if msg.get("usage"):
+                    usage = msg["usage"]
+                model = msg.get("model") or model
+                provider = msg.get("provider") or provider
+        elif event.get("type") == "agent_end":
+            for msg in event.get("messages", []):
+                if msg.get("role") == "assistant":
+                    texts = [c.get("text", "") for c in msg.get("content", []) if c.get("type") == "text"]
+                    if texts:
+                        final_text = "\n".join(texts)
+                    if msg.get("usage"):
+                        usage = msg["usage"]
+                    model = msg.get("model") or model
+                    provider = msg.get("provider") or provider
+    meta = {
+        "model": model,
+        "provider": provider,
+        "usage": usage,
+        "input_tokens": usage.get("input"),
+        "output_tokens": usage.get("output"),
+        "total_tokens": usage.get("totalTokens"),
+        "cost": usage.get("cost"),
+        # Normalized telemetry blocks (issue #21); sb.write_trace_artifacts
+        # gives provider-reported blocks precedence over trace-derived ones.
+        "usage_normalized": normalize_usage(usage, source="provider_reported"),
+        "cost_normalized": normalize_cost(usage.get("cost"), source="provider_reported"),
+    }
+    return final_text, meta
+
+
+def _text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
+def copy_skill_source(src: Path, dest_root: Path, skill_name: str) -> Path:
+    """Copy only the installable skill surface into an isolated runner workspace."""
+    if src.is_dir():
+        dest = dest_root / src.name
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(src, dest)
+        return dest / "SKILL.md" if (dest / "SKILL.md").exists() else dest
+    dest = dest_root / skill_name
+    dest.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest / "SKILL.md")
+    for sibling in ["references", "scripts", "assets"]:
+        s = src.parent / sibling
+        if s.exists() and s.is_dir():
+            d = dest / sibling
+            if d.exists():
+                shutil.rmtree(d)
+            shutil.copytree(s, d)
+    return dest / "SKILL.md"
+
+
+def materialize_runtime_workspace(manifest: dict[str, Any], repo_root: Path, case: dict[str, Any], variant: str, workspace: Path) -> tuple[str, list[str], list[Path], list[Path], dict[str, Any] | None]:
+    """Return instruction, Pi skill args, copied input files, copied skill paths.
+
+    The smoke runner intentionally does not execute from the source repo. It
+    copies only the files the variant is allowed to see. This prevents
+    `without_skill` runs from discovering `skills/*/SKILL.md` or public eval
+    answer keys by using grep/find/read from the repository root.
+    """
+    workspace.mkdir(parents=True, exist_ok=True)
+    copied_skill_paths: list[Path] = []
+    skill_args: list[str] = []
+    # A materialized ablation mounts a real, altered skill tree instead of the
+    # original skill; instruction-simulated ablations (no declared removal) fall
+    # through to the with_skill path plus an "ignore X" instruction. Materialize
+    # into a staging dir OUTSIDE the model-visible workspace: the altered tree's
+    # top-level directory is named after the ablation id, and we must never let
+    # that id appear inside cwd where `ls`/`find` could surface the hypothesis.
+    staging: Path | None = None
+    materialized = None
+    if variant.startswith("ablation:"):
+        # The Pi smoke runner force-loads the skill, so it can only measure
+        # ANSWER-population (behavioral) ablations. A discovery ablation must run
+        # through run_pi_trigger_eval.py --ablation, which observes autonomous loading.
+        if ablation_variant_population(manifest, variant) == "trigger":
+            raise RuntimeError(f"{variant} is a discovery (trigger-population) ablation; run it through run_pi_trigger_eval.py --ablation. The Pi smoke runner force-loads the skill and cannot measure autonomous triggering.")
+        staging = Path(tempfile.mkdtemp(prefix="skill-abl-stage-"))
+        materialized = materialized_tree_for_variant(repo_root, manifest, variant, staging)
+
+    try:
+        if variant == "without_skill":
+            skill_args = ["--no-skills"]
+        else:
+            # with_skill, materialized ablation, AND instruction-simulated ablation all
+            # mount under IDENTICAL workspace-relative names (skills/root-N) via the
+            # same canonical copier, so the arms differ only by the bytes of the
+            # (possibly altered) skill — never by a path that could leak the variant.
+            # Materialized sources each root from the altered staging tree; the others
+            # source from the repo.
+            skill_dest_root = workspace / "skills"
+            skill_dest_root.mkdir(parents=True, exist_ok=True)
+            for i, p in enumerate(manifest.get("skill_paths", [])):
+                if materialized is not None:
+                    main_src = Path(materialized["skill_files"][p])
+                    src_dir, main_name = main_src.parent, main_src.name
+                else:
+                    src = (repo_root / p).resolve()
+                    src_dir = src if src.is_dir() else src.parent
+                    main_name = "SKILL.md" if (src.is_dir() or src.name == "SKILL.md") else src.name
+                dest = skill_dest_root / f"root-{i}"
+                _copy_skill_root(src_dir, dest)
+                main = dest / main_name
+                copied = main if main.exists() else dest
+                copied_skill_paths.append(copied)
+                skill_args.extend(["--skill", str(copied)])
+    finally:
+        # The neutral copies under skills/root-N persist; drop the id-named staging tree.
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
+
+    copied_inputs: list[Path] = []
+    for rel in case.get("files", []) or []:
+        src = (repo_root / "evals" / rel).resolve()
+        dest = workspace / "inputs" / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        copied_inputs.append(dest.resolve())
+
+    # Workspace-RELATIVE paths only: the model runs with cwd=workspace, so these
+    # resolve correctly and are byte-identical between with_skill and a materialized
+    # ablation (both are skills/root-N/SKILL.md). An absolute path would embed the
+    # temp dir and could differ between arms.
+    skill_list = ", ".join(str(Path(sp).relative_to(workspace)) for sp in copied_skill_paths)
+    # The model-facing instruction is OWNED by skill_benchmark.variant_instruction: it
+    # blinds a materialized ablation to the with_skill instruction and emits the
+    # simulate-this-component directive for an instruction-simulated one — the same
+    # blind/transparent decision every other runner uses. The smoke runner only
+    # appends its workspace-relative skill paths, which are byte-identical across arms
+    # and so cannot leak the variant.
+    core = variant_instruction(variant, manifest)
+    if variant == "without_skill":
+        instruction = f"{core} The skill files are intentionally not present in this workspace."
+    else:
+        instruction = f"{core} Read and follow these skill path(s) in your workspace, including referenced files when relevant: {skill_list}."
+    return instruction, skill_args, copied_inputs, copied_skill_paths, materialized
+
+
+def run_case(repo: str, manifest: dict[str, Any], case: dict[str, Any], variant: str, run_name: str, timeout: int) -> dict[str, Any]:
+    repo_root = ROOT / repo
+    out_dir = repo_root / "eval-runs" / run_name / case["id"] / variant
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    prompt = case.get("prompt")
+    if not prompt:
+        raise RuntimeError(f"{repo}/{case['id']} has no inline prompt; smoke runner only handles tune inline prompts")
+
+    # The temp dir name must not encode the variant: the model's cwd IS this dir,
+    # so an "ablation-no-rp" suffix would leak the hypothesis to any `pwd`/abs path.
+    with tempfile.TemporaryDirectory(prefix=f"skill-smoke-{repo}-{case['id']}-") as td:
+        workspace = Path(td)
+        instruction, skill_args, input_files, copied_skill_paths, ablation_provenance = materialize_runtime_workspace(manifest, repo_root, case, variant, workspace)
+        fixture_note = ""
+        if input_files:
+            fixture_lines = []
+            for f in input_files:
+                fixture_lines.append(f"- {f}")
+            fixture_note = (
+                "\n\nINPUT FILES TO READ BEFORE ANSWERING:\n"
+                + "\n".join(fixture_lines)
+                + "\nUse the read tool to inspect these files; do not rely on their names alone."
+            )
+        full_prompt = (
+            f"{instruction}\n\n"
+            "You are producing a bounded smoke-run response. Do not mention the eval harness, scoring, hidden rubrics, or variants. "
+            "Answer the user task directly. Keep the final answer under 900 words. Use at most one bounded source pass; "
+            "if more information would be needed, state the exact missing files instead of continuing to search.\n\n"
+            f"USER TASK:\n{prompt}"
+            f"{fixture_note}"
+        )
+
+        cmd = [
+            "pi",
+            "--no-session",
+            "--tools", "read,grep,find,ls",
+            "--no-context-files",
+            "--no-prompt-templates",
+            "--no-extensions",
+            "--mode", "json",
+            "--thinking", "minimal",
+            *skill_args,
+            "-p", full_prompt,
+        ]
+        start = time.time()
+        timed_out = False
+        returncode = 0
+        stdout = ""
+        stderr = ""
+        try:
+            proc = subprocess.run(
+                cmd, cwd=workspace, text=True, capture_output=True, timeout=timeout, check=False
+            )
+            stdout = _text(proc.stdout)
+            stderr = _text(proc.stderr)
+            returncode = proc.returncode
+        except subprocess.TimeoutExpired as exc:
+            timed_out = True
+            returncode = 124
+            stdout = _text(exc.stdout)
+            stderr = _text(exc.stderr)
+    elapsed_ms = int((time.time() - start) * 1000)
+    text, meta = output_from_events(stdout)
+    if timed_out and not text:
+        text = f"{TIMEOUT_FAILURE}: no final assistant message captured]"
+    # Derive skill_invoked from the trace exactly as pi-trigger does — scan the
+    # model's event stream for evidence it ACTUALLY read a mounted skill file —
+    # rather than asserting "mounted => invoked" by fiat (the two-contract bug).
+    if variant == "without_skill":
+        runner_skill_invoked, copied_skill_evidence = False, []
+    else:
+        runner_skill_invoked, copied_skill_evidence = detect_trigger(stdout, list(locals().get("copied_skill_paths", [])))
+    meta.update({
+        "elapsed_ms": elapsed_ms,
+        "returncode": returncode,
+        "timed_out": timed_out,
+        "case_id": case["id"],
+        "variant": variant,
+        "repo": repo,
+        "run_name": run_name,
+        "command": "pi --mode json ...",
+        "skill_invoked": runner_skill_invoked,
+        "skill_invocation_evidence": copied_skill_evidence if runner_skill_invoked else [],
+    })
+    if ablation_provenance:
+        # One provenance schema, via Provenance — not a hand-picked key subset.
+        prov = Provenance.from_dict(ablation_provenance)
+        meta["ablation"] = prov.as_dict()
+        # Record the canonical (pre-edit) tree hash so the report can pair this
+        # ablation run with a with_skill run from the same skill revision.
+        meta["skill_tree_hash"] = prov.identity.canonical
+    elif variant == "with_skill":
+        meta["skill_tree_hash"] = canonical_skill_tree_hash(repo_root, manifest)
+    (out_dir / "output.md").write_text(text, encoding="utf-8")
+    trace_metrics = {
+        "elapsed_ms": elapsed_ms,
+        "returncode": returncode,
+        "timed_out": timed_out,
+    }
+    write_trace_artifacts(
+        out_dir,
+        stdout,
+        source="pi",
+        metadata=meta,
+        extra_metrics=trace_metrics,
+        environment={
+            "runner": "pi",
+            "mode": "json",
+            "tools": ["read", "grep", "find", "ls"],
+            "variant": variant,
+            "skill_args": locals().get("skill_args", []),
+            "workspace_strategy": "isolated-temp-allowed-files-only",
+            "cwd": "<temporary isolated workspace>",
+        },
+        write_metadata=True,
+    )
+    # Backward-compatible raw stream filename used by older local reports.
+    (out_dir / "events.jsonl").write_text(stdout, encoding="utf-8")
+    if stderr:
+        (out_dir / "stderr.txt").write_text(stderr, encoding="utf-8")
+    return {"repo": repo, "case_id": case["id"], "variant": variant, "returncode": returncode, "timed_out": timed_out}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--run-name", default="baseline-smoke")
+    ap.add_argument("--selection", help="JSON file mapping repo -> case IDs")
+    ap.add_argument("--timeout", type=int, default=180)
+    ap.add_argument("--variant", action="append", help="Variant(s) to run; default with_skill and without_skill. Supports ablation:<id> instruction-simulated variants.")
+    args = ap.parse_args()
+
+    selection = DEFAULT_SELECTION
+    if args.selection:
+        selection = json.loads(Path(args.selection).read_text(encoding="utf-8"))
+
+    summary = []
+    out = ROOT / "baseline-metrics" / f"{args.run_name}-runs.json"
+    for repo, case_ids in selection.items():
+        manifest = load_manifest(repo)
+        cases_by_id = {c["id"]: c for c in manifest["cases"]}
+        variants = args.variant or ["with_skill", "without_skill"]
+        for cid in case_ids:
+            case = cases_by_id[cid]
+            for variant in variants:
+                print(f"RUN {repo} {cid} {variant}", flush=True)
+                row = run_case(repo, manifest, case, variant, args.run_name, args.timeout)
+                summary.append(row)
+                out.write_text(json.dumps({"run_name": args.run_name, "runs": summary}, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {out}")
+    failures = [r for r in summary if r.get("returncode") not in (0, None)]
+    if failures:
+        print(json.dumps({"nonzero_runs": failures}, indent=2), file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

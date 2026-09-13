@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live discovery and registration — webmcp-lib</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 48rem; margin: 0 auto; padding: 2rem 1rem 4rem; line-height: 1.5; }
+    .panel { border: 1px solid color-mix(in srgb, currentColor 25%, transparent); border-radius: .75rem; padding: 1rem; margin-block: 1rem; }
+    .count { font: 700 3rem/1 system-ui, sans-serif; margin-block: .5rem 1rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+    button { font: inherit; min-height: 2.75rem; padding-inline: 1rem; cursor: pointer; }
+    pre { overflow: auto; padding: 1rem; background: color-mix(in srgb, currentColor 8%, transparent); border-radius: .5rem; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Live function discovery</h1>
+    <p>
+      This page defines a stateful <code>window.CounterApp</code>. The library discovers its methods,
+      registers them through <code>document.modelContext.registerTool()</code>, and the controls below
+      invoke the registered tools—not the functions directly.
+    </p>
+
+    <section class="panel" aria-labelledby="counter-heading">
+      <h2 id="counter-heading">Counter state</h2>
+      <p class="count" id="count">0</p>
+      <div class="actions">
+        <button id="increment" type="button" disabled>Call CounterApp_increment</button>
+        <button id="reset" type="button" disabled>Call CounterApp_reset</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Discovering tools…</p>
+    </section>
+
+    <section aria-labelledby="tools-heading">
+      <h2 id="tools-heading">Registered definitions and latest result</h2>
+      <pre id="output">Waiting for registration…</pre>
+    </section>
+  </main>
+
+  <script src="../test/webmcp-polyfill.js"></script>
+  <script>
+    window.CounterApp = {
+      count: 0,
+
+      /**
+       * Increment the counter and return its new state.
+       * @param {integer} amount Amount to add
+       * @returns {object} Updated counter state
+       */
+      increment(amount = 1) {
+        this.count += amount;
+        return { count: this.count, operation: 'increment' };
+      },
+
+      /**
+       * Reset the counter to zero.
+       * @returns {object} Reset counter state
+       */
+      reset() {
+        this.count = 0;
+        return { count: this.count, operation: 'reset' };
+      }
+    };
+  </script>
+
+  <script type="module">
+    import { exposeToWebMCP } from '../src/index.js';
+
+    const count = document.querySelector('#count');
+    const status = document.querySelector('#status');
+    const output = document.querySelector('#output');
+    const incrementButton = document.querySelector('#increment');
+    const resetButton = document.querySelector('#reset');
+
+    const definitions = await exposeToWebMCP({
+      root: window,
+      namespaces: ['CounterApp'],
+      usePromptFallback: false
+    });
+    const registered = await document.modelContext.getTools();
+    const incrementTool = registered.find(({ name }) => name === 'CounterApp_increment');
+    const resetTool = registered.find(({ name }) => name === 'CounterApp_reset');
+
+    const render = (latestResult = null) => {
+      count.textContent = String(window.CounterApp.count);
+      output.textContent = JSON.stringify({
+        registered: definitions.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
+        latestResult
+      }, null, 2);
+    };
+
+    const callTool = async (tool, args) => {
+      status.textContent = `Calling ${tool.name}…`;
+      try {
+        const result = await document.modelContext.executeTool(tool, args);
+        render(result);
+        status.textContent = `${tool.name} returned count ${result.count}.`;
+      } catch (error) {
+        status.textContent = `${tool.name} failed: ${error.message}`;
+      }
+    };
+
+    if (incrementTool && resetTool) {
+      incrementButton.disabled = false;
+      resetButton.disabled = false;
+      incrementButton.addEventListener('click', () => callTool(incrementTool, { amount: 2 }));
+      resetButton.addEventListener('click', () => callTool(resetTool, {}));
+      status.textContent = `${definitions.length} callable tools registered.`;
+      render();
+    } else {
+      status.textContent = 'Expected tools were not registered.';
+    }
+  </script>
+</body>
+</html>

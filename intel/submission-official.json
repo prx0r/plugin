@@ -1,0 +1,166 @@
+[
+  {
+    "id": "digital-goods-commerce-banned",
+    "topic": "submission",
+    "advice": "Plugins may conduct commerce ONLY for physical goods — domains, subscriptions, credits and digital content cannot be sold through the plugin.",
+    "detail": "Plugin guidelines commerce section. Consequence: Domain Checker is lookup-only in chat; registration purchase happens off-plugin on our site. Print (physical) can use external checkout now, Instant Checkout later (beta, select partners). Never build an in-plugin paywall for digital goods.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/app-guidelines",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "fair-play-no-manipulation",
+    "topic": "submission",
+    "advice": "Never write descriptions, titles or annotations that steer selection toward us or against others — fair-play violations risk removal.",
+    "detail": "Banned patterns: prefer-this-plugin language, disparaging alternatives, overly broad triggering, promotional/comparative tool names (pick_me, best, official). Implemented as the no-manipulation gate in packages/evals.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/app-guidelines",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "minimal-inputs-no-precise-location",
+    "topic": "submission",
+    "advice": "Request minimum inputs only; never ask for precise location (city/GPS/addresses) in tool schemas — use the client's coarse side channel.",
+    "detail": "Affects trades search design (coarse area in, exact address only at booking) and print shipping (collected at order, never for quotes). Also: no full-conversation-history fields, no just-in-case context.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/app-guidelines",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "response-minimization",
+    "topic": "submission",
+    "advice": "Strip diagnostic internals (timestamps, session/trace/request IDs) from tool responses unless strictly required.",
+    "detail": "Implemented: checkedAt removed at MCP boundary (kept internally); expiresAt retained as functionally required for quote TTL. Audit every new field against 'strictly required'.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/app-guidelines",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "no-chatgpt-price-penalty",
+    "topic": "submission",
+    "advice": "Never charge ChatGPT users more than elsewhere — no ChatGPT-specific fees or worse versions of website features.",
+    "detail": "Temporary discounts elsewhere are permitted. Router pricing must be channel-blind; record the parity rule in the routing decision log.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/app-guidelines",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
+    "id": "org-verification-owner-role",
+    "topic": "submission",
+    "advice": "Complete org verification and hold the Owner role before submission day — verification gates the entire flow.",
+    "detail": "Individual or business verification in Platform Dashboard general settings; Owner role required to verify and submit.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/deploy/submission",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "public-https-csp-required",
+    "topic": "submission",
+    "advice": "Ship on a public HTTPS domain with a CSP allowing exactly the domains the UI fetches from — no tunnels, no localhost.",
+    "detail": "MCP server requirements at submission: publicly accessible domain, no local/testing endpoint, defined CSP.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/deploy/submission",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "review-redirect-uri-allowlist",
+    "topic": "auth",
+    "advice": "Allowlist https://platform.openai.com/apps-manage/oauth as an OAuth redirect URI before submitting, or the review flow cannot complete login.",
+    "detail": "Legacy https://chatgpt.com/connector_platform_oauth_redirect still works for published apps, but the review flow needs the platform URI.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/build/auth",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "well-known-auth-endpoints",
+    "topic": "auth",
+    "advice": "Expose oauth-protected-resource metadata and oauth-authorization-server (or openid-configuration) discovery at .well-known paths on the MCP host.",
+    "detail": "ChatGPT discovers auth config from these; per-tool securitySchemes declare which tools need OAuth vs anonymous. Our domains tools should stay anonymous.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/build/auth",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "five-positive-three-negative-tests",
+    "topic": "submission",
+    "advice": "Submission testing tab needs 5 positive + 3 negative test cases, reviewer-runnable with demo creds requiring no MFA.",
+    "detail": "Our Phase 11 eval suite maps directly onto this — keep growing tests/evals toward that shape per app.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/plugins/deploy/submission",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "official",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },
+  {
+    "id": "streamable-http-not-sse",
+    "topic": "submission",
+    "advice": "Serve Streamable HTTP transport (recommended); SSE-only servers face resubmission to migrate.",
+    "detail": "Forum: approved apps had to resubmit to move SSE → Streamable HTTP. Our server.ts already uses StreamableHTTPServerTransport stateless.",
+    "source": {
+      "type": "official",
+      "url": "https://developers.openai.com/apps-sdk/concepts/mcp-server",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "verified",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  }
+]

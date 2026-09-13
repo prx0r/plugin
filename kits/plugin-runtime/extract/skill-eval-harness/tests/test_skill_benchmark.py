@@ -1,0 +1,1181 @@
+import contextlib
+import io
+import json
+import sys
+import tempfile
+import unittest
+import zipfile
+from pathlib import Path
+from types import SimpleNamespace
+
+from helpers import (
+    attach_jetty_task_contract,
+    attest_answer_design,
+    load_example_module,
+)
+
+import run_pi_trigger_eval as tr
+
+# Normal imports (not private importlib loads): the whole suite must share ONE
+# skill_benchmark module instance, or registries/monkeypatches/`is`-identity
+# checks silently diverge between test files.
+import skill_benchmark as sb
+
+ROOT = Path(__file__).resolve().parents[1]
+smoke = load_example_module("run_pi_smoke", "examples/adewale-workspace/run_pi_smoke.py")
+
+
+class SkillBenchmarkTests(unittest.TestCase):
+    def test_central_cli_remains_in_the_project_ty_gate(self):
+        project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        ty_sources = project.split("[tool.ty.src]", 1)[1].split("\n[", 1)[0]
+        self.assertIn('"*.py"', ty_sources)
+        self.assertIn('"type_tests/*.py"', ty_sources)
+        self.assertNotIn("check_ty_regressions", project)
+
+    def test_infra_failure_excluded_from_every_report_view(self):
+        # Invariant: an infrastructure failure (execution_valid False) must not
+        # affect ANY report view. Adding a crashed with_skill run (rate 0.0) must
+        # leave the paired delta, every slice mean, and mean_rate unchanged — if a
+        # view forgot the scorable predicate, the 0.0 would drag its rate down.
+        def row(variant, rate, valid=True, run_number=1):
+            return {"case_id": "c1", "variant": variant, "run_number": run_number,
+                    "objective_pass_rate": rate,
+                    "combined_pass_rate": rate, "missing_output": False, "execution_valid": valid,
+                    "domain": "d", "success_goals": ["g"],
+                    "assertions": [{"name": "a", "passed": rate >= 1.0}], "qualitative_assertions": []}
+        good, base = row("with_skill", 1.0), row("without_skill", 0.0)
+        crashed = row("with_skill", 0.0, valid=False, run_number=2)
+        clean, polluted = [good, base], [good, crashed, base]
+        variants = ["with_skill", "without_skill"]
+        clean_paired = sb.build_paired_summary(clean)
+        polluted_paired = sb.build_paired_summary(polluted)
+        self.assertIsNone(polluted_paired["absolute_delta"])
+        self.assertEqual(
+            polluted_paired["observed_absolute_delta"], clean_paired["absolute_delta"])
+        self.assertEqual(polluted_paired["pairing"]["blocked_reason_counts"], {"missing_without_skill": 1})
+        clean_slices = sb.build_slice_summary(clean, variants)
+        polluted_slices = sb.build_slice_summary(polluted, variants)
+        domain = polluted_slices["domain"]["d"]
+        goal = polluted_slices["success_goals"]["g"]
+        self.assertEqual(
+            domain["with_skill"]["observed_mean_objective_pass_rate"]
+            - domain["without_skill"]["observed_mean_objective_pass_rate"],
+            clean_slices["domain"]["d"]["lift"])
+        self.assertEqual(
+            goal["with_skill"]["observed_mean_objective_pass_rate"]
+            - goal["without_skill"]["observed_mean_objective_pass_rate"],
+            clean_slices["success_goals"]["g"]["lift"])
+        self.assertNotIn("lift", domain)
+        self.assertEqual(domain["pairing"]["blocked_pairs"], 1)
+        self.assertEqual(sb.mean_rate([good, crashed]), sb.mean_rate([good]))
+        self.assertEqual(sb.mean_rate([good, crashed]), 1.0)   # the crash did not drag it to 0.5
+
+    def make_manifest(self, root: Path) -> Path:
+        repo = root / "repo"
+        (repo / "skill").mkdir(parents=True)
+        (repo / "skill" / "SKILL.md").write_text("---\nname: demo\ndescription: Demo skill\n---\n", encoding="utf-8")
+        (repo / "evals").mkdir()
+        manifest = {
+            "version": 1,
+            "skill_name": "demo",
+            "skill_paths": ["skill/SKILL.md"],
+            "variants": ["with_skill", "without_skill"],
+            "cases": [
+                {
+                    "id": "case-1",
+                    "split": "tune",
+                    "kind": "behavior",
+                    "prompt": "Say alpha and beta.",
+                    "expected_behavior": ["Say alpha and beta"],
+                    "assertions": [
+                        {"name": "has-alpha", "type": "contains", "value": "alpha"},
+                        {"name": "has-beta", "type": "contains", "value": "beta"},
+                    ],
+                }
+            ],
+            "ablations": [],
+        }
+        path = repo / "evals" / "shared-benchmark.json"
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        return path
+
+    def test_repeated_runs_artifact_outputs_and_flaky_flag(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "repo" / "eval-runs" / "latest"
+            for variant, outputs in {
+                "with_skill": ["alpha beta", "alpha only"],
+                "without_skill": ["alpha only", "alpha only"],
+            }.items():
+                for i, text in enumerate(outputs, 1):
+                    base = runs / "case-1" / variant / f"run-{i}"
+                    base.mkdir(parents=True)
+                    if variant == "with_skill" and i == 1:
+                        (base / "response.md").write_text(text, encoding="utf-8")
+                    else:
+                        (base / "output.md").write_text(text, encoding="utf-8")
+                    (base / "metadata.json").write_text(json.dumps({"elapsed_ms": 1000 * i, "total_tokens": 100 + i}), encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            report = sb.build_benchmark_report(manifest, runs)
+            self.assertEqual(len(report["results"]), 4)
+            self.assertEqual(report["summary"]["with_skill"]["objective_pass_rate"]["n"], 2)
+            self.assertAlmostEqual(report["summary"]["with_skill"]["mean_objective_pass_rate"], 0.75)
+            flags = report["case_flags"][0]["flags"]
+            self.assertIn("flaky repeated pass rates: with_skill", flags)
+
+    def test_judge_results_merge_and_anthropic_grading_shape(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+            manifest_data["cases"][0]["assertions"].append(
+                {"name": "quality", "type": "judge", "rubric": ["Complete"]})
+            manifest.write_text(json.dumps(manifest_data), encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            base = runs / "case-1" / "with_skill"
+            base.mkdir(parents=True)
+            (base / "output.md").write_text("alpha beta", encoding="utf-8")
+            task = sb.collect_judge_tasks(
+                manifest, runs, variants=["with_skill"])[0]
+            judge_results = root / "judge.jsonl"
+            _, _, prompt_sha256, _ = sb.judge_input_material(
+                task, "alpha beta", run_base=base)
+            judge_results.write_text(json.dumps({
+                "judge_task_id": "case-1::with_skill::run-1::quality",
+                "passed": True, "evidence": "complete", "returncode": 0,
+                "judge_observation_complete": True,
+                "availability": "complete",
+                "judge_input_sha256": task["judge_input_sha256"],
+                "judge_prompt_sha256": prompt_sha256,
+                "judge_evidence_mode": "text-only",
+            }) + "\n", encoding="utf-8")
+            attest_answer_design(manifest, runs, variants=["with_skill"])
+            report = sb.build_benchmark_report(manifest, runs, variants_arg=["with_skill"], judge_results_path=str(judge_results))
+            result = report["results"][0]
+            # The default judge is soft: its merged verdict fills the graded/soft
+            # channel while the combined pass rate is carried by the two gates.
+            self.assertEqual(result["combined_total"], 2)
+            self.assertEqual(result["combined_passed"], 2)
+            self.assertEqual(result["soft_total"], 1)
+            self.assertEqual(result["soft_passed"], 1)
+            self.assertTrue(result["qualitative_assertions"][0]["passed"])
+            grading = sb.anthropic_grading_json(result)
+            self.assertIn("expectations", grading)
+            self.assertEqual(grading["summary"]["pass_rate"], 1.0)
+            self.assertTrue(all({"text", "passed", "evidence"}.issubset(e) for e in grading["expectations"]))
+
+    def test_anthropic_expectations_preserve_unavailable_truth(self):
+        expectations = sb.expectation_texts({
+            "assertions": [{
+                "name": "blocked", "passed": None,
+                "availability": "partial", "evidence": "missing trace",
+            }],
+        })
+        self.assertIsNone(expectations[0]["passed"])
+        self.assertEqual(expectations[0]["availability"], "partial")
+
+    def test_prepare_omits_answer_key_by_default(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            class Args:
+                pass
+            Args.manifest = str(manifest)
+            Args.include_old_skill = False
+            Args.include_ablations = False
+            Args.runs_per_variant = 2
+            Args.split = "tune"
+            Args.out = str(root / "tasks.jsonl")
+            Args.allow_missing_prompts = False
+            Args.include_answer_key = False
+            sb.prepare(Args)
+            rows = [json.loads(line) for line in Path(Args.out).read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(len(rows), 4)
+            self.assertNotIn("expected_behavior", rows[0])
+            self.assertEqual(rows[1]["run_dir"], "case-1/with_skill/run-2")
+
+    def test_anthropic_export_contains_required_top_level_fields(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "repo" / "eval-runs" / "latest"
+            for variant in ["with_skill", "without_skill"]:
+                base = runs / "case-1" / variant
+                base.mkdir(parents=True)
+                (base / "output.md").write_text("alpha beta" if variant == "with_skill" else "alpha", encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            report = sb.build_benchmark_report(manifest, runs)
+            exported = sb.anthropic_benchmark_from_report(report, "skill/SKILL.md")
+            self.assertIn("metadata", exported)
+            self.assertIn("runs", exported)
+            self.assertIn("run_summary", exported)
+            self.assertEqual(exported["runs"][0]["configuration"], "with_skill")
+            self.assertIn("delta", exported["run_summary"])
+            self.assertEqual(exported["configuration_deltas"]["all"]["from"], "without_skill")
+            self.assertEqual(exported["configuration_deltas"]["all"]["to"], "with_skill")
+            report["summary"] = {
+                "without_skill": report["summary"]["without_skill"],
+                "with_skill": report["summary"]["with_skill"],
+            }
+            reordered = sb.anthropic_benchmark_from_report(report, "skill/SKILL.md")
+            self.assertEqual(
+                reordered["run_summary"]["delta"], exported["run_summary"]["delta"])
+
+    def test_audit_manifest_reports_missing_categories_and_fixtures(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            report = sb.audit_manifest_report(manifest, min_positive=2, min_negative=1, min_adversarial=1, min_trigger_pos=1, min_trigger_neg=1)
+            kinds = {f["kind"] for f in report["findings"]}
+            self.assertIn("missing-negative-evals", kinds)
+            self.assertIn("missing-adversarial-evals", kinds)
+            self.assertIn("missing-hidden-splits", kinds)
+            self.assertIn("missing-trigger-no-trigger-cases", kinds)
+            self.assertTrue(report["recommended_fixture_repos_files"])
+
+    def test_audit_manifest_run_aware_assertion_discrimination(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "repo" / "eval-runs" / "latest"
+            for variant in ["with_skill", "without_skill"]:
+                base = runs / "case-1" / variant
+                base.mkdir(parents=True)
+                (base / "output.md").write_text("alpha beta", encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            report = sb.audit_manifest_report(manifest, runs=str(runs))
+            kinds = {f["kind"] for f in report["findings"]}
+            self.assertIn("saturated-eval", kinds)
+            self.assertIn("non-discriminating-assertions", kinds)
+
+    def test_missing_outputs_do_not_create_no_lift_flags(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"].append({
+                "id": "case-2",
+                "split": "tune",
+                "kind": "behavior",
+                "prompt": "Say gamma.",
+                "assertions": [{"name": "has-gamma", "type": "contains", "value": "gamma"}],
+            })
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            for variant in ["with_skill", "without_skill"]:
+                base = runs / "case-1" / variant
+                base.mkdir(parents=True)
+                (base / "output.md").write_text("alpha beta", encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            report = sb.build_benchmark_report(manifest, runs)
+            flagged_ids = {f["case_id"] for f in report["case_flags"]}
+            self.assertNotIn("case-2", flagged_ids)
+
+    def test_trigger_eval_extracts_real_user_prompt(self):
+        case = {
+            "prompt": "Trigger decision eval. User prompt: write a README\n\nReturn exactly one label first: TRIGGER or NO_TRIGGER."
+        }
+        self.assertEqual(tr.trigger_query_from_case(case), "write a README")
+
+    def test_trigger_detector_uses_copied_skill_paths_not_bare_skill_name(self):
+        copied = [Path("/tmp/pi-trigger-x/skills/good-readme/SKILL.md")]
+        repo_event = json.dumps({
+            "type": "file_read", "status": "completed",
+            "path": "good-readme/README.md"})
+        self.assertEqual(tr.detect_trigger(repo_event, copied), (False, []))
+        skill_event = json.dumps({
+            "type": "file_read", "status": "completed",
+            "path": "/tmp/pi-trigger-x/skills/good-readme/SKILL.md"})
+        triggered, evidence = tr.detect_trigger(skill_event, copied)
+        self.assertTrue(triggered)
+        self.assertIn("/tmp/pi-trigger-x/skills/good-readme/SKILL.md", evidence[0])
+
+    def test_trigger_detector_reads_command_array_events(self):
+        copied = [Path("/tmp/codex-trigger-x/.codex/skills/good-readme/SKILL.md")]
+        event = json.dumps({
+            "type": "command", "status": "completed",
+            "command": ["bash", "-lc", f"cat {copied[0]}"]})
+        triggered, evidence = tr.detect_trigger(event, copied)
+        self.assertTrue(triggered)
+        self.assertIn("SKILL.md", evidence[0])
+
+    def test_prepare_includes_input_files(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            fixture = manifest.parent / "fixtures" / "case-1" / "input.txt"
+            fixture.parent.mkdir(parents=True)
+            fixture.write_text("fixture", encoding="utf-8")
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["files"] = ["fixtures/case-1/input.txt"]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            class Args:
+                pass
+            Args.manifest = str(manifest)
+            Args.include_old_skill = False
+            Args.include_ablations = False
+            Args.runs_per_variant = 1
+            Args.split = "tune"
+            Args.out = str(root / "tasks.jsonl")
+            Args.allow_missing_prompts = False
+            Args.include_answer_key = False
+            sb.prepare(Args)
+            first = json.loads(Path(Args.out).read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(first["input_files"], [str(fixture.resolve())])
+
+    def test_export_jetty_payload_has_runbook_contract_and_variant_mounts(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            fixture = manifest.parent / "fixtures" / "case-1" / "input.txt"
+            fixture.parent.mkdir(parents=True)
+            fixture.write_text("fixture", encoding="utf-8")
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["files"] = ["fixtures/case-1/input.txt"]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            out = root / "jetty-payloads.jsonl"
+            args = SimpleNamespace(
+                manifest=str(manifest), split="tune", runs_per_variant=1,
+                include_old_skill=False, include_ablations=False, allow_missing_prompts=False,
+                jetty_collection="skill-evals", jetty_task_prefix=None,
+                jetty_agent="claude-code", jetty_model="claude-sonnet-4-6",
+                jetty_model_provider="anthropic", jetty_snapshot="python312-uv",
+                use_trial_keys=False, out=str(out), dry_run=False,
+            )
+            sb.export_jetty(args)
+            rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual([r["harness"]["variant"] for r in rows], ["with_skill", "without_skill"])
+            with_row, without_row = rows
+            jetty = with_row["jetty_request"]["jetty"]
+            self.assertEqual(with_row["jetty_request"]["messages"][1]["content"], "Execute the runbook.")
+            self.assertEqual(jetty["model_provider"], "anthropic")
+            self.assertEqual(jetty["snapshot"], "python312-uv")
+            self.assertEqual(jetty["template_variables"]["results_dir"], "/app/results")
+            self.assertIn("task_json", jetty["template_variables"])
+            self.assertNotIn("expected_behavior", json.dumps(with_row))
+            self.assertNotIn("review_rubric", json.dumps(with_row))
+            self.assertIn("{{task_json}}", with_row["jetty_request"]["messages"][0]["content"])
+            # Live contract: the agent sees files under /app/assets/ (the zip
+            # bundle auto-extracts there), so every model-visible reference is a
+            # deterministic sandbox path — never a run-time storage key.
+            self.assertTrue(jetty["template_variables"]["task_json"].startswith("/app/assets/tasks/"))
+            self.assertEqual(jetty["timeout_hint"], sb.JETTY_SUBMIT_TIMEOUT_HINT_S)
+            bundle = with_row["upload_plan"]["bundle"]
+            self.assertEqual(jetty["file_paths"], [bundle["placeholder"]])
+            self.assertTrue(bundle["archive_name"].endswith(".zip"))
+            with_roles = {f["role"] for f in with_row["upload_plan"]["files"]}
+            without_roles = {f["role"] for f in without_row["upload_plan"]["files"]}
+            self.assertTrue({"task", "skill", "fixture"}.issubset(with_roles))
+            self.assertNotIn("skill", without_roles)
+            self.assertTrue({"task", "fixture"}.issubset(without_roles))
+            for item in with_row["upload_plan"]["files"]:
+                self.assertEqual(item["sandbox_path"], "/app/assets/" + item["remote_path_hint"].lstrip("/"))
+            without_task_json = next(f for f in without_row["upload_plan"]["files"] if f["role"] == "task")["content"]
+            self.assertEqual(json.loads(without_task_json)["skill_files"], [])
+            with_task_json = json.loads(next(f for f in with_row["upload_plan"]["files"] if f["role"] == "task")["content"])
+            for path in with_task_json["skill_files"] + with_task_json["input_files"]:
+                self.assertTrue(path.startswith("/app/assets/"), path)
+
+    def test_pi_message_end_trace_normalizes_usage_and_skill_load(self):
+        assistant = {"role": "assistant", "content": [{"type": "text", "text": "alpha beta"}], "usage": {"input": 10, "output": 5, "totalTokens": 15}}
+        records = [
+            {"type": "tool_use", "status": "completed", "tool_input": {"path": "/tmp/demo/skill/SKILL.md"}},
+            {"type": "message_end", "message": assistant},
+            {"type": "agent_end", "messages": [assistant]},
+        ]
+        events, metrics = sb.normalize_trace_records(records, source="pi")
+        self.assertEqual([e["type"] for e in events["events"]], ["tool_call", "message", "event"])
+        self.assertEqual(metrics["total_tokens"], 15)
+        self.assertTrue(metrics["skill_invoked"])
+
+    def test_actual_codex_jsonl_shape_extracts_answer_and_tokens(self):
+        records = [
+            {"type": "thread.started", "thread_id": "thread_1"},
+            {"type": "turn.started"},
+            {"type": "item.started", "item": {"id": "item_1", "type": "command_execution", "command": "/bin/zsh -lc \"sed -n '1,80p' skills/good-pr/SKILL.md\"", "status": "in_progress"}},
+            {"type": "item.completed", "item": {"id": "item_1", "type": "command_execution", "command": "/bin/zsh -lc \"sed -n '1,80p' skills/good-pr/SKILL.md\"", "aggregated_output": "---", "exit_code": 0, "status": "completed"}},
+            {"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "codex-trace-ok"}},
+            {"type": "turn.completed", "usage": {"input_tokens": 100, "cached_input_tokens": 20, "output_tokens": 9, "reasoning_output_tokens": 0}},
+        ]
+        events, metrics = sb.normalize_trace_records(records, source="codex")
+        self.assertEqual(sb.final_answer_from_events(events), "codex-trace-ok")
+        self.assertEqual(metrics["commands"], 1)
+        self.assertTrue(metrics["skill_invoked"])
+        self.assertEqual(metrics["input_tokens"], 100)
+        self.assertEqual(metrics["output_tokens"], 9)
+        self.assertEqual(metrics["total_tokens"], 109)
+
+    def test_import_jetty_results_roundtrip_can_be_benchmarked(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "runs"
+            jetty_runs = root / "jetty-runs.jsonl"
+            completed = {
+                "harness": {"skill_name": "demo", "case_id": "case-1", "variant": "with_skill", "run_number": 1, "split": "tune", "run_dir": "case-1/with_skill"},
+                "status": "completed",
+                "trajectory_id": "traj_1",
+                "jetty": {"collection": "skill-evals", "task": "demo-case-1-with-skill-1", "agent": "claude-code", "model": "claude-sonnet-4-6", "model_provider": "anthropic", "snapshot": "python312-uv"},
+                "trajectory": {
+                    "usage": {"input_tokens": 5, "output_tokens": 7, "total_tokens": 12},
+                    "elapsed_ms": 34,
+                    "events": [
+                        {"type": "tool_call", "status": "completed", "tool_input": {"path": "/tmp/demo/skill/SKILL.md"}},
+                        {"type": "exec_command", "status": "completed", "command": "python -m unittest"},
+                    ],
+                },
+                "artifacts": [
+                    {"path": "/app/results/output.md", "content": "alpha beta"},
+                    {"path": "/app/results/metadata.json", "content": {"total_tool_calls": 2}},
+                    {"path": "/app/results/outputs/image.bin", "content_b64": "/wA="},
+                ],
+            }
+            failed = {
+                "harness": {"skill_name": "demo", "case_id": "case-1", "variant": "without_skill", "run_number": 1, "split": "tune", "run_dir": "case-1/without_skill"},
+                "status": "failed",
+                "trajectory_id": "traj_2",
+                "jetty": {"collection": "skill-evals", "task": "demo-case-1-without-skill-1", "agent": "claude-code", "model": "claude-sonnet-4-6", "model_provider": "anthropic", "snapshot": "python312-uv"},
+                "trajectory": {"error": "boom"},
+            }
+            for index, record in enumerate((completed, failed), 1):
+                attach_jetty_task_contract(record, marker=index)
+            jetty_runs.write_text(json.dumps(completed) + "\n" + json.dumps(failed) + "\n", encoding="utf-8")
+            sb.import_jetty_results(SimpleNamespace(manifest=str(manifest), jetty_runs=str(jetty_runs), runs=str(runs)))
+            self.assertEqual((runs / "case-1" / "with_skill" / "output.md").read_text(encoding="utf-8"), "alpha beta")
+            meta = json.loads((runs / "case-1" / "with_skill" / "metadata.json").read_text(encoding="utf-8"))
+            self.assertEqual(meta["provider"], "jetty")
+            self.assertEqual(meta["jetty_trajectory_id"], "traj_1")
+            self.assertEqual(
+                (runs / "case-1" / "with_skill" / "outputs" / "image.bin").read_bytes(),
+                b"\xff\x00",
+            )
+            self.assertTrue((runs / "case-1" / "with_skill" / "trace.jsonl").exists())
+            events = json.loads((runs / "case-1" / "with_skill" / "events.json").read_text(encoding="utf-8"))
+            metrics = json.loads((runs / "case-1" / "with_skill" / "metrics.json").read_text(encoding="utf-8"))
+            self.assertTrue(any(e["type"] == "tool_call" for e in events["events"]))
+            self.assertTrue(metrics["skill_invoked"])
+            self.assertEqual(metrics["commands"], 1)
+            self.assertEqual(metrics["total_tokens"], 12)
+            self.assertIn("JETTY FAILURE", (runs / "case-1" / "without_skill" / "output.md").read_text(encoding="utf-8"))
+            report = sb.build_benchmark_report(manifest, runs, variants_arg=["with_skill"])
+            self.assertEqual(report["availability"], "partial")
+            self.assertEqual(report["results"][0]["objective_pass_rate"], 1.0)
+
+    def test_import_jetty_rejects_unsafe_missing_and_duplicate_execution_identity(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            base = {
+                "harness": {"case_id": "case-1", "variant": "with_skill", "run_number": 1,
+                            "run_dir": "../escape"},
+                "status": "failed", "jetty": {"model": "m"}, "artifacts": [],
+            }
+            attach_jetty_task_contract(base)
+            path = root / "jetty.jsonl"
+            cases = [
+                [base],
+                [{**base, "harness": {k: v for k, v in base["harness"].items() if k != "run_number"}}],
+                [{**base, "harness": {**base["harness"], "run_dir": "case-1/with_skill"}},
+                 {**base, "harness": {**base["harness"], "run_dir": "case-1/with_skill"}}],
+                [{**base, "harness": {**base["harness"], "run_dir": "case-1/with_skill"},
+                  "status": "completed",
+                  "artifacts": [{"path": "output.md", "content": "answer"}]}],
+                [{**base, "harness": {**base["harness"], "run_dir": "case-1/with_skill"},
+                  "status": "completed", "trajectory_id": "   ",
+                  "artifacts": [{"path": "output.md", "content": "answer"}]}],
+            ]
+            for records in cases:
+                with self.subTest(records=records):
+                    path.write_text("".join(json.dumps(record) + "\n" for record in records), encoding="utf-8")
+                    with self.assertRaises(SystemExit):
+                        sb.import_jetty_results(SimpleNamespace(
+                            manifest=str(manifest), jetty_runs=str(path), runs=str(root / "runs")))
+            self.assertFalse((root / "escape").exists())
+
+    def test_import_jetty_persists_ablation_provenance_into_metadata(self):
+        # The harness-only ablation provenance must land in the run metadata so the
+        # report can verify a materialized tree was mounted (not just trust the dir).
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "runs"
+            jetty_runs = root / "jr.jsonl"
+            prov = {"id": "no-rp", "mode": "materialized", "population": "answer", "skill_hash": "abc123", "components": [{"class": "instructions", "mechanism": "section"}]}
+            rec = {
+                "harness": {"skill_name": "demo", "case_id": "case-1", "variant": "ablation:no-rp", "run_number": 1, "split": "tune", "run_dir": "case-1/ablation:no-rp", "ablation": prov},
+                "status": "completed", "trajectory_id": "t1",
+                "jetty": {"collection": "c", "task": "t", "agent": "claude-code", "model": "m", "model_provider": "anthropic", "snapshot": "s"},
+                "artifacts": [{"path": "/app/results/output.md", "content": "x"}],
+            }
+            attach_jetty_task_contract(rec)
+            jetty_runs.write_text(json.dumps(rec) + "\n", encoding="utf-8")
+            sb.import_jetty_results(SimpleNamespace(manifest=str(manifest), jetty_runs=str(jetty_runs), runs=str(runs)))
+            meta = json.loads((runs / "case-1" / "ablation:no-rp" / "metadata.json").read_text(encoding="utf-8"))
+            self.assertEqual(meta["ablation"], prov)
+
+    def test_export_jetty_hidden_prompt_placeholder_is_non_executable(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"] = [{
+                "id": "holdout-1",
+                "split": "holdout",
+                "kind": "behavior",
+                "prompt_ref": "holdout/private.md",
+                "assertions": [{"name": "has-alpha", "type": "contains", "value": "alpha"}],
+            }]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            out = root / "jetty-payloads.jsonl"
+            args = SimpleNamespace(
+                manifest=str(manifest), split="holdout", runs_per_variant=1,
+                include_old_skill=False, include_ablations=False, allow_missing_prompts=True,
+                jetty_collection="skill-evals", jetty_task_prefix=None,
+                jetty_agent="claude-code", jetty_model="claude-sonnet-4-6",
+                jetty_model_provider="anthropic", jetty_snapshot="python312-uv",
+                use_trial_keys=False, out=str(out), dry_run=True,
+            )
+            sb.export_jetty(args)
+            row = json.loads(out.read_text(encoding="utf-8").splitlines()[0])
+            self.assertFalse(row["harness"]["executable"])
+
+            class ShouldNotCallClient:
+                def upload(self, *args, **kwargs):
+                    raise AssertionError("non-executable payload should not upload")
+
+            records = list(sb.execute_jetty_payloads([row], client=ShouldNotCallClient()))
+            self.assertEqual(records[0]["status"], "protocol_invalid")
+            self.assertEqual(records[0]["lifecycle"]["kind"], "protocol_invalid")
+            self.assertIn("non-executable", records[0]["error"])
+
+    def test_pi_smoke_workspace_omits_skill_for_without_skill(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            repo = manifest.parent.parent
+            fixture = manifest.parent / "fixtures" / "input.txt"
+            fixture.parent.mkdir()
+            fixture.write_text("fixture", encoding="utf-8")
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["files"] = ["fixtures/input.txt"]
+            with tempfile.TemporaryDirectory() as wd:
+                instruction, skill_args, inputs, skill_paths, _ = smoke.materialize_runtime_workspace(data, repo, data["cases"][0], "without_skill", Path(wd))
+                self.assertEqual(skill_args, ["--no-skills"])
+                self.assertEqual(skill_paths, [])
+                self.assertEqual(len(inputs), 1)
+                self.assertTrue(str(inputs[0]).startswith(str(Path(wd).resolve())))
+                self.assertFalse((Path(wd) / "skills").exists())
+                self.assertIn("not present", instruction)
+            with tempfile.TemporaryDirectory() as wd:
+                _, skill_args, _, skill_paths, _ = smoke.materialize_runtime_workspace(data, repo, data["cases"][0], "with_skill", Path(wd))
+                self.assertTrue(skill_paths)
+                self.assertIn("--skill", skill_args)
+                self.assertTrue(all(str(p.resolve()).startswith(str(Path(wd).resolve())) for p in skill_paths))
+
+    def test_pi_trigger_trace_artifact_writer_uses_detector_evidence(self):
+        with tempfile.TemporaryDirectory() as td:
+            run_dir = Path(td) / "trigger-run"
+            stdout = "\n".join([
+                json.dumps({"type": "tool_execution_end", "toolName": "read",
+                            "args": {"path": "/tmp/pi-trigger/skills/demo/SKILL.md"}}),
+                json.dumps({"type": "message_end", "message": {"role": "assistant", "content": [{"type": "text", "text": "done"}], "usage": {"input": 3, "output": 2, "totalTokens": 5}}}),
+                json.dumps({"type": "agent_end", "messages": [{"role": "assistant", "content": [{"type": "text", "text": "done"}], "usage": {"input": 3, "output": 2, "totalTokens": 5}}]}),
+            ]) + "\n"
+            result = {"query": "demo", "should_trigger": True, "triggered": True, "pass": True, "elapsed_ms": 50, "returncode": 0, "timed_out": False, "evidence": ["/tmp/pi-trigger/skills/demo/SKILL.md"]}
+            tr.write_trigger_trace_artifacts(run_dir, stdout, result)
+            metrics = json.loads((run_dir / "metrics.json").read_text(encoding="utf-8"))
+            meta = json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
+            self.assertTrue(metrics["skill_invoked"])
+            self.assertEqual(metrics["total_tokens"], 5)
+            self.assertEqual(meta["query"], "demo")
+
+    def test_script_assertion_requires_opt_in_and_executes_oracle(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            oracle = manifest.parent / "oracles" / "oracle.py"
+            oracle.parent.mkdir(parents=True)
+            oracle.write_text(
+                "import pathlib, sys\n"
+                "out = pathlib.Path(sys.argv[1]) / 'output.md'\n"
+                "text = out.read_text()\n"
+                "print('checked output')\n"
+                "raise SystemExit(0 if 'alpha beta' in text else 2)\n",
+                encoding="utf-8",
+            )
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["assertions"] = [{
+                "name": "oracle-pass",
+                "type": "script",
+                "command": [sys.executable, "oracles/oracle.py", "{output_dir}"],
+                "timeout_s": 5,
+            }]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            base = runs / "case-1" / "with_skill"
+            base.mkdir(parents=True)
+            (base / "output.md").write_text("alpha beta", encoding="utf-8")
+            attest_answer_design(manifest, runs, variants=["with_skill"])
+            blocked = sb.build_benchmark_report(manifest, runs, variants_arg=["with_skill"])
+            self.assertIsNone(blocked["results"][0]["objective_pass_rate"])
+            self.assertEqual(blocked["results"][0]["grading_availability"], "partial")
+            self.assertIn("--allow-scripts", blocked["results"][0]["assertions"][0]["evidence"])
+            allowed = sb.build_benchmark_report(manifest, runs, variants_arg=["with_skill"], allow_scripts=True)
+            self.assertEqual(allowed["results"][0]["objective_pass_rate"], 1.0)
+            self.assertIn("checked output", allowed["results"][0]["assertions"][0]["evidence"])
+
+    def test_prompt_assertion_leakage_lint_finds_literal_contains_values(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            findings = sb.prompt_assertion_leakage_findings(sb.load_json(manifest), manifest)
+            self.assertTrue(any(f["case_id"] == "case-1" and f["value"] == "alpha" for f in findings))
+
+    def test_judge_command_backend_writes_loadable_results(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+            manifest_data["cases"][0]["assertions"].append(
+                {"name": "quality", "type": "judge", "rubric": ["Complete"]})
+            manifest.write_text(json.dumps(manifest_data), encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            base = runs / "case-1" / "with_skill"
+            base.mkdir(parents=True)
+            (base / "output.md").write_text("alpha beta", encoding="utf-8")
+            judge = root / "judge.py"
+            judge.write_text(
+                "import json, sys\n"
+                "_ = sys.stdin.read()\n"
+                "print('prefix ' + json.dumps({'score': 4, 'passed': True, 'rationale': 'ok {brace}'}) + ' suffix')\n",
+                encoding="utf-8",
+            )
+            out = root / "judge-results.jsonl"
+            transcripts = root / "judge-transcripts"
+            sb.judge_command(SimpleNamespace(
+                manifest=str(manifest), runs=str(runs), split="tune", variant=["with_skill"],
+                judge_cmd=f"{sys.executable} {judge}", out=str(out), transcripts=str(transcripts), judge_runs=1,
+            ))
+            rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(rows[0]["judge_task_id"], "case-1::with_skill::run-1::quality")
+            self.assertTrue(rows[0]["passed"])
+            self.assertIn("{brace}", rows[0]["evidence"])
+            self.assertTrue(any(transcripts.rglob("prompt.md")))
+
+    def test_trace_import_process_and_efficiency_assertions(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["domain"] = "writing"
+            data["cases"][0]["difficulty"] = "core"
+            data["cases"][0]["trigger_type"] = "explicit"
+            data["cases"][0]["success_goals"] = ["outcome", "process", "efficiency"]
+            data["cases"][0]["assertions"] = [
+                {"name": "loaded-skill", "type": "skill_invoked", "expected": True},
+                {"name": "ran-tests", "type": "command_ran", "pattern": "npm test"},
+                {"name": "safe-command", "type": "command_not_ran", "pattern": "rm -rf"},
+                {"name": "ordered", "type": "command_order", "patterns": ["npm install", "npm test"]},
+                {"name": "command-budget", "type": "command_count_le", "max": 3},
+                {"name": "token-budget", "type": "total_tokens_le", "max": 200},
+                {"name": "time-budget", "type": "elapsed_seconds_le", "max": 5},
+            ]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            run_dir = root / "repo" / "eval-runs" / "latest" / "case-1" / "with_skill"
+            run_dir.mkdir(parents=True)
+            (run_dir / "output.md").write_text("alpha beta", encoding="utf-8")
+            trace = run_dir / "trace.jsonl"
+            rows = [
+                {"type": "thread.started", "thread_id": "thread-1"},
+                {"type": "turn.started"},
+                {"type": "item.completed", "item": {
+                    "id": "read-skill", "type": "command_execution", "status": "completed",
+                    "command": f"cat {root / 'repo' / 'skill' / 'SKILL.md'}", "exit_code": 0}},
+                {"type": "item.completed", "item": {
+                    "id": "install", "type": "command_execution", "status": "completed",
+                    "command": "npm install", "duration_ms": 1000, "exit_code": 0}},
+                {"type": "item.completed", "item": {
+                    "id": "test", "type": "command_execution", "status": "completed",
+                    "command": "npm test", "duration_ms": 1200, "exit_code": 0}},
+                {"type": "item.completed", "item": {
+                    "id": "answer", "type": "agent_message", "text": "alpha beta"}},
+                {"type": "turn.completed", "usage": {
+                    "input_tokens": 80, "output_tokens": 20}},
+            ]
+            trace.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+            sb.import_trace(SimpleNamespace(source="codex", trace=str(trace), run_dir=str(run_dir), out_events=None, out_metrics=None, write_metadata=False))
+            self.assertTrue((run_dir / "metadata.json").is_file())
+            events = json.loads((run_dir / "events.json").read_text(encoding="utf-8"))
+            metrics = json.loads((run_dir / "metrics.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                sum(e["type"] == "command" for e in events["events"]), 3)
+            self.assertTrue(metrics["skill_invoked"])
+            self.assertEqual(metrics["commands"], 3)
+            report = sb.build_benchmark_report(manifest, root / "repo" / "eval-runs" / "latest", variants_arg=["with_skill"])
+            result = report["results"][0]
+            self.assertEqual(result["objective_pass_rate"], 1.0)
+            self.assertEqual(result["process_pass_rate"], 1.0)
+            self.assertEqual(result["efficiency_pass_rate"], 1.0)
+            observed_summary = report["summary"]["with_skill"]["observed"]
+            self.assertEqual(observed_summary["telemetry_availability"]["events"], 1)
+            observed_slices = report["slice_summary"]["observed"]
+            arm = observed_slices["domain"]["writing"]["with_skill"]
+            self.assertEqual(arm["attempted_runs"], 1)
+            self.assertEqual(arm["runs"], 0)
+            self.assertEqual(arm["blocked_runs"], 1)
+
+    def test_import_trace_preserves_explicit_process_state_and_rejects_invalid_utf8(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            run = root / "run"
+            run.mkdir()
+            (run / "metadata.json").write_text(json.dumps({
+                "returncode": 127,
+                "process_observation_complete": True,
+            }), encoding="utf-8")
+            trace = root / "trace.jsonl"
+            trace.write_text('{"type":"event","status":"completed"}\n',
+                             encoding="utf-8")
+            sb.import_trace(SimpleNamespace(
+                source="generic", trace=str(trace), run_dir=str(run),
+                out_events=None, out_metrics=None))
+            metrics = json.loads(
+                (run / "metrics.json").read_text(encoding="utf-8"))
+            self.assertTrue(metrics["process_observation_complete"])
+
+            invalid_run = root / "invalid-run"
+            invalid_trace = root / "invalid.jsonl"
+            invalid_trace.write_bytes(
+                b'{"type":"message","content":"\xff"}\n')
+            sb.import_trace(SimpleNamespace(
+                source="generic", trace=str(invalid_trace),
+                run_dir=str(invalid_run), out_events=None, out_metrics=None))
+            invalid_metrics = json.loads(
+                (invalid_run / "metrics.json").read_text(encoding="utf-8"))
+            self.assertFalse(invalid_metrics["trace_observation_complete"])
+            self.assertIn(
+                "trace transport is not valid UTF-8",
+                invalid_metrics["trace_protocol_errors"])
+
+    def test_variant_scoped_process_assertions_do_not_penalize_other_variants(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["assertions"] = [
+                {"name": "with-skill-load", "type": "skill_invoked", "expected": True, "variants": ["with_skill"]},
+                {"name": "without-skill-no-load", "type": "skill_invoked", "expected": False, "variants": ["without_skill"]},
+            ]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            for variant, invoked in [("with_skill", True), ("without_skill", False)]:
+                base = runs / "case-1" / variant
+                base.mkdir(parents=True)
+                (base / "output.md").write_text("alpha beta", encoding="utf-8")
+                record = ({"type": "skill_load", "path": "/skills/demo/SKILL.md",
+                           "status": "completed"}
+                          if invoked else
+                          {"type": "message", "role": "assistant", "content": "done"})
+                sb.write_trace_artifacts(
+                    base, json.dumps(record), source="generic",
+                    write_metadata=True,
+                    process_observation_complete=True,
+                    provider_response_complete=True,
+                )
+            attest_answer_design(manifest, runs)
+            report = sb.build_benchmark_report(manifest, runs)
+            by_variant = {r["variant"]: r for r in report["results"]}
+            self.assertEqual(by_variant["with_skill"]["objective_total"], 1)
+            self.assertEqual(by_variant["without_skill"]["objective_total"], 1)
+            self.assertEqual(by_variant["with_skill"]["objective_pass_rate"], 1.0)
+            self.assertEqual(by_variant["without_skill"]["objective_pass_rate"], 1.0)
+
+    def test_process_and_efficiency_assertions_fail_closed_without_evidence(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["assertions"] = [
+                {"name": "loaded-skill", "type": "skill_invoked", "expected": True},
+                {"name": "token-budget", "type": "total_tokens_le", "max": 200},
+            ]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            run_dir = root / "repo" / "eval-runs" / "latest" / "case-1" / "with_skill"
+            run_dir.mkdir(parents=True)
+            (run_dir / "output.md").write_text("alpha beta", encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            attest_answer_design(manifest, runs, variants=["with_skill"])
+            report = sb.build_benchmark_report(manifest, runs, variants_arg=["with_skill"])
+            result = report["results"][0]
+            self.assertIsNone(result["objective_pass_rate"])
+            self.assertEqual(result["grading_availability"], "partial")
+            self.assertTrue(all(row["availability"] == "partial"
+                                for row in result["assertions"]))
+            self.assertIn("missing", result["assertions"][0]["evidence"])
+            self.assertIn("missing", result["assertions"][1]["evidence"])
+
+    def test_benchmark_reports_delta_normalized_gain_and_negative_cases(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["domain"] = "docs"
+            data["cases"][0]["difficulty"] = "core"
+            data["cases"].append({
+                "id": "case-2",
+                "split": "tune",
+                "kind": "behavior",
+                "domain": "docs",
+                "difficulty": "extended",
+                "prompt": "Say gamma.",
+                "assertions": [{"name": "has-gamma", "type": "contains", "value": "gamma"}],
+            })
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            outputs = {
+                ("case-1", "with_skill"): "alpha",
+                ("case-1", "without_skill"): "alpha beta",
+                ("case-2", "with_skill"): "gamma",
+                ("case-2", "without_skill"): "nope",
+            }
+            for (case_id, variant), text in outputs.items():
+                base = runs / case_id / variant
+                base.mkdir(parents=True)
+                (base / "output.md").write_text(text, encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            report = sb.build_benchmark_report(manifest, runs)
+            self.assertAlmostEqual(report["paired_summary"]["absolute_delta"], 0.25)
+            self.assertEqual(report["paired_summary"]["negative_delta_cases"][0]["case_id"], "case-1")
+            self.assertAlmostEqual(report["paired_summary"]["normalized_gain"], 0.5)
+            self.assertIn("extended", report["slice_summary"]["difficulty"])
+
+    def test_profile_skill_reports_size_and_reference_warnings(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            skill = root / "repo" / "skill" / "SKILL.md"
+            refs = root / "repo" / "skill" / "references"
+            refs.mkdir()
+            (refs / "a.md").write_text("one two three\n" * 200, encoding="utf-8")
+            (refs / "b.md").write_text("four five six\n" * 200, encoding="utf-8")
+            skill.write_text("---\nname: demo\n---\n# Demo\n" + "## Module\ntext\n" * 12, encoding="utf-8")
+            report = sb.profile_skill_report(manifest, max_skill_tokens=20, max_references=1, max_modules=3)
+            kinds = {f["kind"] for f in report["findings"]}
+            self.assertIn("skill-too-large", kinds)
+            self.assertIn("many-references", kinds)
+            self.assertIn("many-modules", kinds)
+
+    def test_token_overhead_reports_static_and_runtime_pairs(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "repo" / "eval-runs" / "latest"
+            for variant, total, input_tokens, output_tokens in [
+                ("with_skill", 150, 120, 30),
+                ("without_skill", 60, 50, 10),
+            ]:
+                base = runs / "case-1" / variant
+                base.mkdir(parents=True)
+                (base / "output.md").write_text("alpha beta", encoding="utf-8")
+                (base / "metrics.json").write_text(json.dumps({
+                    "provider": "test-provider",
+                    "model": "test-model",
+                    "billing_scope": "run",
+                    "usage_normalized": {
+                        "total_tokens": total,
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "source": "provider_reported",
+                    },
+                    "skill_invoked": variant == "with_skill",
+                }), encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            report = sb.paired_token_overhead_report(manifest, runs=runs)
+            self.assertEqual(report["summary"]["paired_runtime_rows"], 1)
+            self.assertEqual(report["pairs"][0]["total_token_delta"], 90)
+            self.assertEqual(report["pairs"][0]["input_token_delta"], 70)
+            self.assertEqual(report["pairs"][0]["objective_delta"], 0.0)
+            self.assertEqual(report["pairs"][0]["objective_lift_per_1k_total_tokens"], 0.0)
+            self.assertGreater(report["summary"]["static_skill_tokens"], 0)
+
+    def test_token_overhead_pairs_each_model_root_without_overwriting_same_run_number(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "repo" / "eval-runs" / "latest"
+            for model, with_tokens, without_tokens in [("model-a", 150, 50), ("model-b", 220, 100)]:
+                for variant, tokens in [("with_skill", with_tokens), ("without_skill", without_tokens)]:
+                    base = runs / "case-1" / model / variant
+                    base.mkdir(parents=True)
+                    (base / "output.md").write_text("alpha beta", encoding="utf-8")
+                    (base / "metrics.json").write_text(json.dumps({
+                        "provider": "test-provider", "model": model, "billing_scope": "run",
+                        "usage_normalized": {"total_tokens": tokens, "source": "provider_reported"},
+                    }), encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            report = sb.paired_token_overhead_report(manifest, runs=runs)
+        self.assertEqual(report["summary"]["paired_runtime_rows"], 2)
+        self.assertEqual({pair["model"] for pair in report["pairs"]}, {"model-a", "model-b"})
+        self.assertEqual({pair["total_token_delta"] for pair in report["pairs"]}, {100, 120})
+
+    def test_pairing_refuses_singleton_arms_with_different_run_numbers(self):
+        with tempfile.TemporaryDirectory() as td:
+            runs = Path(td)
+            with_dir = runs / "case" / "with_skill" / "run-2"
+            without_dir = runs / "case" / "without_skill" / "run-1"
+            with_dir.mkdir(parents=True)
+            without_dir.mkdir(parents=True)
+            with self.assertRaisesRegex(ValueError, "non-contiguous run identities"):
+                list(sb.paired_run_bases(
+                    runs, "case", "with_skill", "without_skill"))
+
+    def test_token_overhead_reports_missing_and_unscorable_pairs_as_blocked(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            runs = root / "repo" / "eval-runs" / "latest"
+            with_base = runs / "case-1" / "with_skill"
+            with_base.mkdir(parents=True)
+            (with_base / "output.md").write_text("alpha beta", encoding="utf-8")
+            (with_base / "metrics.json").write_text(json.dumps({
+                "provider": "test-provider", "model": "test-model", "billing_scope": "run",
+                "usage_normalized": {"total_tokens": 10, "source": "provider_reported"},
+            }), encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            missing_report = sb.paired_token_overhead_report(manifest, runs=runs)
+            self.assertEqual(missing_report["pairs"], [])
+            self.assertEqual(missing_report["blocked_pairs"][0]["pair_status"]["reason"], "missing_right")
+            self.assertEqual(
+                missing_report["summary"]["observed"]["cost_delta_coverage"]["blocked_reason_counts"],
+                {"missing_right": 1})
+
+            without_base = runs / "case-1" / "without_skill"
+            without_base.mkdir(parents=True)
+            # Empty output is an unscorable arm, but it remains an auditable blocked pair.
+            (without_base / "output.md").write_text("", encoding="utf-8")
+            (without_base / "metrics.json").write_text(json.dumps({
+                "provider": "test-provider", "model": "test-model", "billing_scope": "run", "returncode": 1,
+                "usage_normalized": {"total_tokens": 5, "source": "provider_reported"},
+            }), encoding="utf-8")
+            attest_answer_design(manifest, runs)
+            unscorable_report = sb.paired_token_overhead_report(manifest, runs=runs)
+        self.assertEqual(unscorable_report["pairs"], [])
+        self.assertEqual(unscorable_report["blocked_pairs"][0]["pair_status"]["reason"], "unscorable_arm")
+        self.assertEqual(
+            unscorable_report["summary"]["observed"]["cost_delta_coverage"]["blocked_reason_counts"],
+            {"unscorable_arm": 1})
+
+    def test_command_assertions_match_command_inputs_not_outputs(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"][0]["assertions"] = [
+                {"name": "did-not-run-rm", "type": "command_not_ran", "pattern": "rm -rf"},
+                {"name": "ran-tests", "type": "command_ran", "pattern": "npm test"},
+            ]
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            run_dir = root / "repo" / "eval-runs" / "latest" / "case-1" / "with_skill"
+            run_dir.mkdir(parents=True)
+            (run_dir / "output.md").write_text("alpha beta", encoding="utf-8")
+            (run_dir / "events.json").write_text(json.dumps({
+                "schema_version": 1,
+                "source": "test",
+                "events": [{
+                    "index": 1,
+                    "type": "command",
+                    "name": "bash",
+                    "status": "completed",
+                    "input_summary": "echo harmless",
+                    "output_summary": "docs mention npm test and rm -rf as examples",
+                }],
+            }), encoding="utf-8")
+            runs = root / "repo" / "eval-runs" / "latest"
+            attest_answer_design(manifest, runs, variants=["with_skill"])
+            report = sb.build_benchmark_report(manifest, runs, variants_arg=["with_skill"])
+            assertions = {a["name"]: a for a in report["results"][0]["assertions"]}
+            self.assertTrue(assertions["did-not-run-rm"]["passed"])
+            self.assertFalse(assertions["ran-tests"]["passed"])
+
+    def test_run_codex_writes_trace_output_and_metrics(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            tasks = root / "tasks.jsonl"
+            rows = sb.prepared_task_rows(manifest, sb.load_json(manifest))
+            tasks.write_text("".join(json.dumps(row) + "\n" for row in rows[:1]), encoding="utf-8")
+            fake = root / "fake_codex.py"
+            fake.write_text(
+                "import json, sys\n"
+                "_prompt = sys.stdin.read()\n"
+                "out = sys.argv[sys.argv.index('--output-last-message') + 1]\n"
+                "open(out, 'w', encoding='utf-8').write('alpha beta')\n"
+                "print(json.dumps({'type': 'exec_command', 'status': 'completed', 'command': 'npm test'}))\n"
+                "print(json.dumps({'role': 'assistant', 'content': 'alpha beta'}))\n",
+                encoding="utf-8",
+            )
+            runs = root / "runs"
+            sb.run_codex(SimpleNamespace(tasks=str(tasks), runs=str(runs), codex_cmd=f"{sys.executable} {fake}", timeout=5))
+            base = runs / "case-1" / "with_skill"
+            self.assertTrue((base / "trace.jsonl").exists())
+            self.assertEqual((base / "output.md").read_text(encoding="utf-8"), "alpha beta")
+            metrics = json.loads((base / "metrics.json").read_text(encoding="utf-8"))
+            self.assertEqual(metrics["commands"], 1)
+            meta = json.loads((base / "metadata.json").read_text(encoding="utf-8"))
+            self.assertEqual(meta["provider"], "codex")
+
+    def test_run_codex_malformed_jsonl_still_writes_failure_artifacts(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            tasks = root / "tasks.jsonl"
+            rows = sb.prepared_task_rows(manifest, sb.load_json(manifest))
+            tasks.write_text(json.dumps(rows[0]) + "\n", encoding="utf-8")
+            fake = root / "bad_codex.py"
+            fake.write_text("import sys\nprint('{not json')\nprint('plain diagnostic')\nsys.exit(2)\n", encoding="utf-8")
+            runs = root / "runs"
+            sb.run_codex(SimpleNamespace(tasks=str(tasks), runs=str(runs), codex_cmd=f"{sys.executable} {fake}", timeout=5))
+            base = runs / "case-1" / "with_skill"
+            self.assertIn("CODEX FAILURE", (base / "output.md").read_text(encoding="utf-8"))
+            metrics = json.loads((base / "metrics.json").read_text(encoding="utf-8"))
+            self.assertIn("parse_errors", metrics)
+            meta = json.loads((base / "metadata.json").read_text(encoding="utf-8"))
+            self.assertEqual(meta["returncode"], 2)
+
+    def test_run_codex_rejects_duplicate_task_identity_before_execution(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            row = sb.prepared_task_rows(manifest, sb.load_json(manifest))[0]
+            tasks = root / "tasks.jsonl"
+            tasks.write_text(json.dumps(row) + "\n" + json.dumps(row) + "\n", encoding="utf-8")
+            with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                sb.run_codex(SimpleNamespace(tasks=str(tasks), runs=str(root / "runs"),
+                                             codex_cmd=str(root / "must-not-run"), timeout=5))
+            self.assertFalse((root / "runs").exists())
+
+    def test_run_codex_rejects_unsafe_run_dir(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            tasks = root / "tasks.jsonl"
+            tasks.write_text(json.dumps({"case_id": "case", "variant": "with_skill", "run_dir": "../outside", "prompt": "x"}) + "\n", encoding="utf-8")
+            with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                sb.run_codex(SimpleNamespace(tasks=str(tasks), runs=str(root / "runs"), codex_cmd=f"{sys.executable} -c 'print(1)'", timeout=5))
+            self.assertFalse((root / "outside").exists())
+
+    def test_run_jetty_uploads_bundle_submits_polls_and_fetches_artifacts(self):
+        row = {
+            "harness": {"skill_name": "demo", "case_id": "case-1", "variant": "with_skill", "run_number": 1, "split": "tune", "run_dir": "case-1/with_skill"},
+            "jetty_request": {
+                "model": "claude-sonnet-4-6",
+                "messages": [{"role": "system", "content": "runbook"}, {"role": "user", "content": "Execute the runbook."}],
+                "stream": False,
+                "jetty": {
+                    "runbook": True,
+                    "collection": "skill-evals",
+                    "task": "demo-case-1-with-skill-1",
+                    "agent": "claude-code",
+                    "model_provider": "anthropic",
+                    "snapshot": "python312-uv",
+                    "timeout_hint": sb.JETTY_SUBMIT_TIMEOUT_HINT_S,
+                    "template_variables": {"results_dir": "/app/results", "task_json": "/app/assets/tasks/demo.json"},
+                    "file_paths": ["upload://demo/bundle/zip"],
+                },
+            },
+            "upload_plan": {
+                "bundle": {"placeholder": "upload://demo/bundle/zip", "archive_name": "demo.zip"},
+                "files": [
+                    {"role": "task", "placeholder": "upload://demo/task/json", "content": "{}", "remote_path_hint": "tasks/demo.json", "sandbox_path": "/app/assets/tasks/demo.json", "private": True},
+                    {"role": "skill", "placeholder": "upload://demo/skill/1", "content": "skill body", "remote_path_hint": "skills/demo/SKILL.md", "sandbox_path": "/app/assets/skills/demo/SKILL.md", "private": False},
+                ],
+            },
+        }
+        row["harness"]["jetty_task_contract_sha256"] = (
+            sb.jetty_task_contract_sha256(row))
+
+        class FakeClient:
+            def __init__(self):
+                self.submitted = None
+                self.downloaded: list[str] = []
+            def upload_bundle(self, archive_name, data):
+                self.bundle = (archive_name, data)
+                # Live shape: POST /api/v1/sandbox/upload returns file_paths.
+                return "skill-evals/_sandbox_uploads/abc123/demo.zip"
+            def submit(self, request_body):
+                self.submitted = request_body
+                # Live shape: sync wait exceeded -> 202 + jetty_metadata.workflow_id.
+                return {"jetty_metadata": {"mode": "runbook", "status": "running", "workflow_id": "traj_1"}}
+            def poll(self, collection, task, trajectory_id, *, timeout_s=1800, poll_interval_s=5):
+                return {
+                    "status": "completed",
+                    "trajectory_id": trajectory_id,
+                    "storage_path": f"{collection}/{task}/0000",
+                }
+            def fetch_trajectory(self, collection, task, trajectory_id):
+                return {
+                    "status": "completed",
+                    "trajectory_id": trajectory_id,
+                    "storage_path": "skill-evals/demo-case-1-with-skill-1/0000",
+                    "steps": {"run": {"activity": "runbook", "outputs": {
+                        "success": True,
+                        "results_files": [{"path": "skill-evals/demo-case-1-with-skill-1/0000/traj_1.run.0000.app--results--output.md", "content_type": "text/markdown"}],
+                        "usage": {"prompt_tokens": 100, "completion_tokens": 5, "total_tokens": 105, "cost_usd": 0.01, "duration_seconds": 2.0, "api_calls": 1},
+                    }}},
+                }
+            def download_file(self, storage_path):
+                self.downloaded.append(storage_path)
+                return b"alpha beta"
+
+        client = FakeClient()
+        records = list(sb.execute_jetty_payloads([row], client=client, timeout_s=1, poll_interval_s=0))
+        archive_name, bundle_bytes = client.bundle
+        self.assertEqual(archive_name, "demo.zip")
+        with zipfile.ZipFile(io.BytesIO(bundle_bytes)) as zf:
+            self.assertEqual(sorted(zf.namelist()), ["skills/demo/SKILL.md", "tasks/demo.json"])
+        self.assertEqual(client.submitted["jetty"]["file_paths"], ["skill-evals/_sandbox_uploads/abc123/demo.zip"])
+        # Model-visible sandbox paths never change at run time.
+        self.assertEqual(client.submitted["jetty"]["template_variables"]["task_json"], "/app/assets/tasks/demo.json")
+        record = records[0]
+        self.assertEqual(record["status"], "completed")
+        self.assertEqual(record["trajectory_id"], "traj_1")
+        self.assertEqual(record["artifacts"], [{
+            "path": "/app/results/output.md",
+            "storage_path": "skill-evals/demo-case-1-with-skill-1/0000/traj_1.run.0000.app--results--output.md",
+            "content_type": "text/markdown",
+            "content": "alpha beta",
+        }])
+        self.assertEqual(record["trajectory"]["usage"]["prompt_tokens"], 100)
+        self.assertEqual(record["trajectory"]["elapsed_ms"], 2000)
+        self.assertEqual(record["trajectory"]["cost_usd"], 0.01)
+
+    def test_jetty_artifact_sandbox_path_decodes_flattened_storage_names(self):
+        tid = "3c9246ca-1111-2222-3333-444455556666"
+        self.assertEqual(
+            sb.jetty_artifact_sandbox_path(f"coll/task/0000/{tid}.run.0000.app--results--output.md"),
+            "/app/results/output.md")
+        self.assertEqual(
+            sb.jetty_artifact_sandbox_path(f"coll/task/0000/{tid}.run.0003.app--results--outputs--chart.png"),
+            "/app/results/outputs/chart.png")
+        # A name that does not decode to app/results is preserved, not guessed.
+        self.assertEqual(
+            sb.jetty_artifact_sandbox_path(f"coll/task/0000/{tid}.run.0007.logs--agent--session.jsonl"),
+            "/app/results/outputs/logs--agent--session.jsonl")
+
+    def test_extract_trajectory_id_reads_live_response_shapes(self):
+        # HTTP 200 (captured 2026-07-17): bare id in jetty_metadata.trajectory_id.
+        self.assertEqual(sb.extract_trajectory_id({"id": "chatcmpl-bb2bb71e", "jetty_metadata": {"trajectory_id": "bb2bb71e"}}), "bb2bb71e")
+        # HTTP 202: workflow_id is <collection>-<task>--<trajectory_id>; the DB
+        # poll route keys on the suffix, so the full id must be normalized.
+        self.assertEqual(
+            sb.extract_trajectory_id({"id": "chatcmpl-coll-my-task--37c37963",
+                                      "jetty_metadata": {"status": "running", "workflow_id": "coll-my-task--37c37963"}}),
+            "37c37963")
+        self.assertEqual(sb.extract_trajectory_id({"jetty_metadata": {"status": "running", "workflow_id": "traj_8"}}), "traj_8")
+        self.assertEqual(sb.extract_trajectory_id({"id": "chatcmpl-traj_7"}), "traj_7")
+        self.assertIsNone(sb.extract_trajectory_id({"object": "chat.completion"}))
+
+
+if __name__ == "__main__":
+    unittest.main()

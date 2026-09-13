@@ -1,0 +1,202 @@
+{
+  "app": {
+    "name": "Domain Availability",
+    "subtitle": "Check domain availability",
+    "description": "Check whether an exact domain name is available to register, check several at once, and suggest available names for a brand or idea. Uses live public registration data; never guesses.",
+    "category": "UTILITIES",
+    "commerce": "none",
+    "has_ui": false,
+    "serves_ads": false,
+    "capabilities": [
+      "Check one exact domain for availability",
+      "Check up to 20 domains in one request",
+      "Suggest available names from keywords"
+    ],
+    "starter_prompts": [
+      "Is pogtown.com available?",
+      "Check acme.com, acme.io and acme.dev",
+      "Suggest a domain for my plumbing business"
+    ],
+    "demo_recording_url": "https://agentcom.org/domain-availability/demo",
+    "release_notes": "Initial submission. Read-only RDAP availability checks, no auth, no UI."
+  },
+  "publisher": {
+    "verified_identity": false,
+    "identity_name_matches_public_urls": false,
+    "website_url": "https://agentcom.org",
+    "support_url": "https://agentcom.org/support",
+    "privacy_url": "https://agentcom.org/privacy",
+    "terms_url": "https://agentcom.org/terms"
+  },
+  "mcp": {
+    "url": "https://domains.agentcom.org/mcp",
+    "public_production": false,
+    "url_type": "Universal",
+    "auth_required": false,
+    "review_account_no_mfa": true,
+    "domain_verified": false,
+    "scan_current": false
+  },
+  "privacy": {
+    "policy_covers_categories": false,
+    "policy_covers_purposes": false,
+    "policy_covers_recipients": false,
+    "policy_covers_retention": false,
+    "policy_covers_controls": false
+  },
+  "ui": {
+    "connect_domains": [],
+    "resource_domains": [],
+    "frame_domains": [],
+    "redirect_domains": [],
+    "widget_uri_versioned": true
+  },
+  "tools": [
+    {
+      "name": "check_exact_domain",
+      "description": "Check whether an exact domain name is available to register. Use when the user asks if a specific domain is taken, free, or available.",
+      "inputs": [
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true,
+          "description": "Exact fully-qualified domain to check, e.g. example.com."
+        }
+      ],
+      "outputs": ["input", "ascii", "valid", "invalidReason", "available", "source"],
+      "returns_structured_content": true,
+      "has_output_schema": true,
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "behavior": {
+        "mutates_state": false,
+        "accesses_public_or_open_ended_external_entities": true,
+        "irreversible_or_hard_to_reverse": false,
+        "sends_data_to_third_party": true
+      },
+      "annotation_justifications": {
+        "readOnlyHint": "True because the tool only reads public registration status and changes nothing locally or remotely.",
+        "openWorldHint": "True because the tool queries live public RDAP registration infrastructure on the open internet.",
+        "destructiveHint": "False because an availability lookup cannot delete, overwrite, charge, or irreversibly change anything."
+      }
+    },
+    {
+      "name": "batch_check_domains",
+      "description": "Check availability for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
+      "inputs": [
+        {
+          "name": "domains",
+          "type": "string[]",
+          "required": true,
+          "description": "Between 1 and 20 exact fully-qualified domain names."
+        }
+      ],
+      "outputs": ["results"],
+      "returns_structured_content": true,
+      "has_output_schema": true,
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "behavior": {
+        "mutates_state": false,
+        "accesses_public_or_open_ended_external_entities": true,
+        "irreversible_or_hard_to_reverse": false,
+        "sends_data_to_third_party": true
+      },
+      "annotation_justifications": {
+        "readOnlyHint": "True because batch lookup only reads public registration status for each name.",
+        "openWorldHint": "True because each lookup queries live public RDAP infrastructure on the open internet.",
+        "destructiveHint": "False because availability lookups have no side effects individually or in batch."
+      }
+    },
+    {
+      "name": "find_available_domains",
+      "description": "Suggest available domain names for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name.",
+      "inputs": [
+        {
+          "name": "keywords",
+          "type": "string",
+          "required": true,
+          "description": "Brand, business or idea keywords to base suggestions on."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "description": "How many options to return, 1 to 10. Defaults to 5."
+        }
+      ],
+      "outputs": ["results"],
+      "returns_structured_content": true,
+      "has_output_schema": true,
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "behavior": {
+        "mutates_state": false,
+        "accesses_public_or_open_ended_external_entities": true,
+        "irreversible_or_hard_to_reverse": false,
+        "sends_data_to_third_party": true
+      },
+      "annotation_justifications": {
+        "readOnlyHint": "True because suggestion generation and availability filtering only read public data.",
+        "openWorldHint": "True because candidate availability is verified against live public RDAP infrastructure.",
+        "destructiveHint": "False because suggesting names changes nothing anywhere."
+      }
+    }
+  ],
+  "tests": {
+    "positive": [
+      {
+        "prompt": "Is pogtown.com available right now?",
+        "expected_tools": ["check_exact_domain"]
+      },
+      {
+        "prompt": "Check pog.pet and pog.town for me.",
+        "expected_tools": ["batch_check_domains"]
+      },
+      {
+        "prompt": "I like Pogtown. Give me ten strong available .com alternatives.",
+        "expected_tools": ["find_available_domains"]
+      },
+      {
+        "prompt": "Is agentcom.org taken?",
+        "expected_tools": ["check_exact_domain"]
+      },
+      {
+        "prompt": "Which of these is free: alpha.io, alpha.co, alpha.dev?",
+        "expected_tools": ["batch_check_domains"]
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Why is .com usually preferred for startups?",
+        "expected_tools": []
+      },
+      {
+        "prompt": "Brainstorm funny names for a dog show.",
+        "expected_tools": []
+      },
+      {
+        "prompt": "What is RDAP?",
+        "expected_tools": []
+      }
+    ]
+  },
+  "third_party_integrations": [
+    {
+      "name": "RDAP public registration data (IETF open protocol, no key, no ToS)",
+      "authorized": true,
+      "official_api_or_partner_access": false,
+      "terms_reviewed": true,
+      "primary_pass_through": false
+    }
+  ]
+}
