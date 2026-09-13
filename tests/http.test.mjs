@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { RdapProvider } from "@print/domains";
-import { batchDomainsRest, checkDomainRest, suggestDomainsRest } from "@print/http";
-import { startMcpServer } from "@print/mcp/server";
+import { RdapProvider } from "@agentcom/domains";
+import { batchDomainsRest, checkDomainRest, suggestDomainsRest } from "@agentcom/http";
+import { startMcpServer } from "@agentcom/mcp/server";
 
 const notFound = async () => ({ status: 404, json: async () => null });
 const taken = async () => ({ status: 200, json: async () => ({ objectClassName: "domain" }) });
@@ -11,9 +11,9 @@ describe("http surface", () => {
   it("check/batch/suggest handlers share core semantics (stubbed)", async () => {
     const free = new RdapProvider({ fetchImpl: notFound });
     assert.equal((await checkDomainRest(free, "free-xyz.com")).status, 200);
-    assert.equal((await checkDomainRest(free, "free-xyz.com")).body.available, true);
+    assert.equal((await checkDomainRest(free, "free-xyz.com")).body.status, "available");
     const busy = new RdapProvider({ fetchImpl: taken });
-    assert.equal((await checkDomainRest(busy, "example.com")).body.available, false);
+    assert.equal((await checkDomainRest(busy, "example.com")).body.status, "registered");
     assert.equal((await checkDomainRest(free, "")).status, 400);
     assert.equal((await checkDomainRest(free, "not a domain")).status, 422);
     assert.equal((await batchDomainsRest(free, [])).status, 400);

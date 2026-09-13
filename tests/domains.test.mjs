@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeDomain, suggestDomains, findAvailable, RdapProvider } from "@print/domains";
+import { mergeSources, normalizeDomain, suggestDomains, findAvailable, RdapProvider } from "@agentcom/domains";
 
 const ok = (json) => async () => ({ status: 200, json: async () => json });
 const notFound = async () => ({ status: 404, json: async () => null });
@@ -15,28 +15,56 @@ describe("domains vertical", () => {
     assert.equal(normalizeDomain("-bad-.com").valid, false);
   });
 
-  it("404 → available, 200 domain object → taken", async () => {
+  it("404 → available (medium, RDAP-only wording), 200 domain object → registered", async () => {
     const avail = new RdapProvider({ fetchImpl: notFound });
-    assert.equal((await avail.check("free-domain-xyz.com")).available, true);
+    const a = await avail.check("free-domain-xyz.com");
+    assert.equal(a.status, "available");
+    assert.equal(a.confidence, "medium");
+    assert.ok(a.message.includes("RDAP"));
+    assert.ok(a.checked_at);
     const taken = new RdapProvider({ fetchImpl: ok({ objectClassName: "domain" }) });
-    assert.equal((await taken.check("example.com")).available, false);
+    const t = await taken.check("example.com");
+    assert.equal(t.status, "registered");
+    assert.equal(t.confidence, "high");
   });
 
-  it("errors and odd shapes → unknown, never invented", async () => {
-    const err = new RdapProvider({ fetchImpl: serverError });
-    assert.equal((await err.check("example.com")).available, null);
-    const weird = new RdapProvider({ fetchImpl: ok({ objectClassName: "nameserver" }) });
-    assert.equal((await weird.check("example.com")).available, null);
-    const boom = new RdapProvider({ fetchImpl: async () => { throw new Error("net down"); } });
-    assert.equal((await boom.check("example.com")).available, null);
+  it("network failure, 500s and odd shapes → unknown, never available", async () => {
+    for (const impl of [serverError, ok({ objectClassName: "nameserver" }), async () => { throw new Error("net down"); }]) {
+      const p = new RdapProvider({ fetchImpl: impl });
+      const r = await p.check("example.com");
+      assert.equal(r.status, "unknown", "must never invent availability");
+    }
   });
 
-  it("invalid input skips the network entirely", async () => {
+  it("timeout → unknown, never available", async () => {
+    const hanging = (_url, opts) => new Promise((_, reject) => {
+      opts?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+    });
+    const p = new RdapProvider({ fetchImpl: hanging, timeoutMs: 30 });
+    assert.equal((await p.check("example.com")).status, "unknown");
+  });
+
+  it("malformed input → unsupported without touching network", async () => {
     let called = 0;
     const p = new RdapProvider({ fetchImpl: async (...a) => { called++; return notFound(...a); } });
     const r = await p.check("not a domain!!");
     assert.equal(r.valid, false);
+    assert.equal(r.status, "unsupported");
     assert.equal(called, 0);
+  });
+
+  it("corroboration: disagreement → conflicting, never the favorable answer", async () => {
+    const at = new Date().toISOString();
+    const r = mergeSources([
+      { type: "rdap", provider: "rdap", status: "available", at },
+      { type: "registrar", provider: "reg", status: "registered", at },
+    ]);
+    assert.equal(r.status, "conflicting");
+    const reg = mergeSources([
+      { type: "rdap", provider: "rdap", status: "available", at },
+      { type: "registrar", provider: "reg", status: "available", at },
+    ]);
+    assert.deepEqual(reg, { status: "available", confidence: "high" });
   });
 
   it("batch preserves input order under concurrency", async () => {
@@ -44,17 +72,22 @@ describe("domains vertical", () => {
       fetchImpl: async (url) => (url.includes("taken") ? ok({ objectClassName: "domain" })() : notFound()),
     });
     const out = await p.batch(["a-free.com", "taken-one.com", "b-free.com"], 2);
-    assert.deepEqual(out.map((r) => r.available), [true, false, true]);
+    assert.deepEqual(out.map((r) => r.status), ["available", "registered", "available"]);
   });
 
-  it("suggestions are deterministic and findAvailable prefers available", async () => {
+  it("findAvailable returns ONLY confirmed available (unknowns excluded)", async () => {
+    let n = 0;
+    const flaky = async () => (++n % 2 === 0 ? notFound() : serverError());
+    const p = new RdapProvider({ fetchImpl: flaky });
+    const found = await findAvailable(p, "plumbsoft", 10);
+    assert.ok(found.length > 0);
+    assert.ok(found.every((f) => f.status === "available"));
+  });
+
+  it("suggestions are deterministic", async () => {
     assert.deepEqual(suggestDomains("plumb soft"), suggestDomains("plumb soft"));
     assert.ok(suggestDomains("plumbsoft").includes("plumbsoft.com"));
     assert.deepEqual(suggestDomains("!!!"), []);
-    const p = new RdapProvider({ fetchImpl: notFound });
-    const found = await findAvailable(p, "plumbsoft", 3);
-    assert.equal(found.length, 3);
-    assert.ok(found.every((f) => f.available === true));
   });
 
   it("declares read-only capabilities (no quote/messaging/booking)", () => {

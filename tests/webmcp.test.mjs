@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { detectModelContext, domainCheckToolDef, declarativeFormSnippet, recoveryError, registerAgentComTools } from "@print/web/webmcp";
+import { detectModelContext, domainCheckToolDef, declarativeFormSnippet, recoveryError, registerAgentComTools } from "@agentcom/web/webmcp";
 
 describe("webmcp starter", () => {
   it("never throws without a browser, registers nothing", () => {

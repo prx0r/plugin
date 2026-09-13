@@ -36,7 +36,7 @@
     },
     {
       "file": "discovery.json",
-      "items": 24,
+      "items": 25,
       "topics": ["discovery"],
       "sources": [
         "https://community.openai.com/t/apps-search-only-returning-results-based-on-app-name-or-subtitle/1380113",
@@ -60,5 +60,5 @@
       "note": "23 tracked accounts, not advice items — excluded from item counts"
     }
   ],
-  "total_items": 76
+  "total_items": 77
 }

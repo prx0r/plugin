@@ -10,8 +10,8 @@ import type {
   ProviderOrderRequest,
   ProviderQuote,
   ProviderQuoteRequest,
-} from "@print/domain";
-import { CANONICAL_CATALOG } from "@print/domain";
+} from "@agentcom/domain";
+import { CANONICAL_CATALOG } from "@agentcom/domain";
 
 const BASE_COST_USD: Record<string, number> = {
   tee_unisex_standard: 9.5,

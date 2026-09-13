@@ -6,7 +6,7 @@ import {
   type Quote,
   type QuoteRequest,
   type RoutingDecision,
-} from "@print/domain";
+} from "@agentcom/domain";
 
 export const RANKING_VERSION = "v1.0";
 export const QUOTE_TTL_MS = 30 * 60 * 1000;

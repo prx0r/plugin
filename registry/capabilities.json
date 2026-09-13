@@ -3,14 +3,14 @@
   "updated": "2026-09-13",
   "publisher": "AgentCom",
   "trustDomain": "agentcom.org",
-  "infraPattern": "{capability}.agentcom.org",
+  "infraPattern": "{capability}.agentcom.org (plural noun: domains, prints)",
   "capabilities": [
     {
       "id": "domains.check",
       "title": "Domain Availability",
       "subtitle": "Check domain availability",
       "page": "https://agentcom.org/domain-availability",
-      "mcp": "https://domain.agentcom.org/mcp",
+      "mcp": "https://domains.agentcom.org/mcp",
       "surfaces": ["mcp", "webmcp", "http", "website"],
       "schemaVersion": "v1",
       "auth": "none",

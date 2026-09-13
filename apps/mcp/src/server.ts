@@ -6,9 +6,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { createServer, type Server } from "node:http";
-import { CANONICAL_CATALOG } from "@print/domain";
-import { findAvailable, normalizeDomain, RdapProvider, type FetchImpl } from "@print/domains";
-import { batchDomainsRest, checkDomainRest, suggestDomainsRest } from "@print/http";
+import { CANONICAL_CATALOG } from "@agentcom/domain";
+import { findAvailable, RdapProvider, type FetchImpl } from "@agentcom/domains";
+import { batchDomainsRest, checkDomainRest, suggestDomainsRest } from "@agentcom/http";
 import { buildJsonLd, buildManifest, LLMS_TXT } from "./discovery.ts";
 import {
   findPrintableProducts,
@@ -18,14 +18,26 @@ import {
   quotePersonalizedProduct,
 } from "./index.ts";
 
+const AVAILABILITY = ["available", "registered", "unknown", "conflicting", "unsupported"] as const;
+const CONFIDENCE = ["high", "medium", "low"] as const;
+
+const sourceShape = {
+  type: z.string(),
+  provider: z.string(),
+  status: z.enum(AVAILABILITY),
+  at: z.string(),
+};
+
 const domainCheckShape = {
   input: z.string(),
   ascii: z.string().nullable(),
   valid: z.boolean(),
   invalidReason: z.string().optional(),
-  available: z.boolean().nullable(),
-  source: z.string().optional(),
-  checkedAt: z.string().optional(),
+  status: z.enum(AVAILABILITY),
+  confidence: z.enum(CONFIDENCE),
+  sources: z.array(z.object(sourceShape)),
+  checked_at: z.string(),
+  message: z.string(),
 };
 
 const PRODUCT_TYPES = [
@@ -38,45 +50,21 @@ const PRODUCT_TYPES = [
   "tote_bag",
 ] as const;
 
-export function createAgentComServer(opts?: { domainsFetch?: FetchImpl }): McpServer {
-  const rdap = new RdapProvider(opts?.domainsFetch ? { fetchImpl: opts.domainsFetch } : undefined);
-
-  const server = new McpServer(
-    { name: "agentcom", version: "0.2.0" },
-    {
-      instructions:
-        "AgentCom routes real-world market intent to ranked offers. " +
-        "Check a domain's availability before suggesting alternatives. " +
-        "Quote print jobs before preparing artwork or placing orders. " +
-        "Never place an order or booking without explicit user confirmation.",
-    },
-  );
-
+function registerDomainTools(server: McpServer, rdap: RdapProvider): void {
   // ---- Domains (first publication experiment: read-only, no login) ----
   server.registerTool(
     "check_exact_domain",
     {
       title: "Check domain availability",
       description:
-        "Check whether an exact domain name is available to register. Use when the user asks if a specific domain is taken, free, or available.",
+        "Check the current registration record for an exact domain name via public RDAP data. Use when the user asks if a specific domain is taken, free, or available. A no-record result is not a purchase guarantee.",
       inputSchema: { domain: z.string().min(1).max(253) },
       outputSchema: domainCheckShape,
       annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
     },
     async ({ domain }: { domain: string }) => {
-      const norm = normalizeDomain(domain);
-      if (!norm.valid || !norm.ascii) {
-        const result = { input: domain, ascii: norm.ascii, valid: false, invalidReason: norm.invalidReason, available: null as boolean | null };
-        return { structuredContent: result, content: [{ type: "text" as const, text: result.invalidReason ?? "Invalid domain." }] };
-      }
-      const { checkedAt: _dropped, ...result } = await rdap.check(domain);
-      const text =
-        result.available === true
-          ? `${result.ascii} looks available.`
-          : result.available === false
-            ? `${result.ascii} is taken.`
-            : `Could not confirm availability for ${result.ascii} right now.`;
-      return { structuredContent: result, content: [{ type: "text" as const, text }] };
+      const result = await rdap.check(domain);
+      return { structuredContent: result, content: [{ type: "text" as const, text: result.message }] };
     },
   );
 
@@ -85,17 +73,17 @@ export function createAgentComServer(opts?: { domainsFetch?: FetchImpl }): McpSe
     {
       title: "Check domains in bulk",
       description:
-        "Check availability for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
+        "Check current registration records for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
       inputSchema: { domains: z.array(z.string().min(1).max(253)).min(1).max(20) },
       outputSchema: { results: z.array(z.object(domainCheckShape)) },
       annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
     },
     async ({ domains }: { domains: string[] }) => {
-      const results = (await rdap.batch(domains)).map(({ checkedAt: _dropped, ...r }) => r);
-      const free = results.filter((r) => r.available === true).length;
+      const results = await rdap.batch(domains);
+      const free = results.filter((r) => r.status === "available").length;
       return {
         structuredContent: { results },
-        content: [{ type: "text" as const, text: `${free} of ${results.length} domains look available.` }],
+        content: [{ type: "text" as const, text: `${free} of ${results.length} domains show no registration record.` }],
       };
     },
   );
@@ -105,13 +93,13 @@ export function createAgentComServer(opts?: { domainsFetch?: FetchImpl }): McpSe
     {
       title: "Suggest available domains",
       description:
-        "Suggest available domain names for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name.",
+        "Suggest domain names with no current registration record, for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name. Suggestions are RDAP-checked, not purchase-guaranteed.",
       inputSchema: { keywords: z.string().min(1).max(80), maxResults: z.number().int().min(1).max(10).optional() },
       outputSchema: { results: z.array(z.object(domainCheckShape)) },
       annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
     },
     async ({ keywords, maxResults }: { keywords: string; maxResults?: number }) => {
-      const results = (await findAvailable(rdap, keywords, maxResults ?? 5)).map(({ checkedAt: _dropped, ...r }) => r);
+      const results = await findAvailable(rdap, keywords, maxResults ?? 5);
       return {
         structuredContent: { results },
         content: [
@@ -127,6 +115,9 @@ export function createAgentComServer(opts?: { domainsFetch?: FetchImpl }): McpSe
     },
   );
 
+}
+
+function registerPrintTools(server: McpServer): void {
   // ---- Print (Pog Prints router behind intent verbs) ----
   server.registerTool(
     "find_printable_products",
@@ -296,8 +287,76 @@ export function createAgentComServer(opts?: { domainsFetch?: FetchImpl }): McpSe
       };
     },
   );
+}
 
+/** Domain Availability micro-app: exactly the domain tools, nothing else. */
+export function createDomainsServer(opts?: { domainsFetch?: FetchImpl }): McpServer {
+  const server = new McpServer(
+    { name: "agentcom-domains", version: "0.2.0" },
+    {
+      instructions:
+        "Domain Availability answers current domain registration status from live public data. " +
+        "A no-record result is not a purchase guarantee.",
+    },
+  );
+  registerDomainTools(server, new RdapProvider(opts?.domainsFetch ? { fetchImpl: opts.domainsFetch } : undefined));
   return server;
+}
+
+/** Custom Print micro-app: exactly the print tools. */
+export function createPrintServer(): McpServer {
+  const server = new McpServer(
+    { name: "agentcom-print", version: "0.2.0" },
+    {
+      instructions:
+        "Custom Print compares manufacturing options across print providers. " +
+        "Quote before preparing artwork or placing orders. " +
+        "Never place an order without explicit user confirmation.",
+    },
+  );
+  registerPrintTools(server);
+  return server;
+}
+
+/**
+ * Dev/internal aggregate. NEVER publish this catalog: per-capability
+ * micro-apps are the publication surfaces (actualguide.md).
+ */
+export function createAgentComServer(opts?: { domainsFetch?: FetchImpl }): McpServer {
+  const server = new McpServer(
+    { name: "agentcom", version: "0.2.0" },
+    {
+      instructions:
+        "AgentCom routes real-world market intent to ranked offers. " +
+        "Check a domain's availability before suggesting alternatives. " +
+        "Quote print jobs before preparing artwork or placing orders. " +
+        "Never place an order or booking without explicit user confirmation.",
+    },
+  );
+  registerDomainTools(server, new RdapProvider(opts?.domainsFetch ? { fetchImpl: opts.domainsFetch } : undefined));
+  registerPrintTools(server);
+  return server;
+}
+
+/** Production surface selection. Deployments set MCP_SURFACE; dev defaults to the aggregate. */
+export function selectSurface(): McpServer {
+  switch (process.env["MCP_SURFACE"]) {
+    case "domains":
+      return createDomainsServer();
+    case "print":
+      return createPrintServer();
+    default:
+      return createAgentComServer();
+  }
+}
+
+/** Canonical public origin. Production MUST set PUBLIC_BASE_URL (fail-closed
+ *  discovery); development falls back to the request host. Never trust Host
+ *  headers for canonical URLs behind proxies. */
+export function canonicalBase(req: { headers: { host?: string } }): string {
+  const env = process.env["PUBLIC_BASE_URL"]?.replace(/\/$/, "");
+  if (env) return env;
+  return `http://${req.headers.host ?? "localhost"}`;
 }
 
 /** Read a capped JSON body (1MB). Rejects on overflow or bad JSON. */
@@ -354,13 +413,13 @@ export function startMcpServer(port = 8787): Server {  const httpServer = create
     }
 
     if (req.method === "GET" && url.pathname === "/.well-known/agentcom.json") {
-      const host = `http://${req.headers.host ?? "localhost"}`;
+      const host = canonicalBase(req);
       res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(buildManifest(host), null, 2));
       return;
     }
 
     if (req.method === "GET" && url.pathname === "/capability.jsonld") {
-      const host = `http://${req.headers.host ?? "localhost"}`;
+      const host = canonicalBase(req);
       res.writeHead(200, { "content-type": "application/ld+json" }).end(JSON.stringify(buildJsonLd(host), null, 2));
       return;
     }
@@ -399,7 +458,7 @@ export function startMcpServer(port = 8787): Server {  const httpServer = create
     if (url.pathname === "/mcp" && req.method && ["POST", "GET", "DELETE"].includes(req.method)) {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
-      const server = createAgentComServer();
+      const server = selectSurface();
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       res.on("close", () => {
         transport.close();

@@ -1,0 +1,40 @@
+{
+  "experiment_id": "domain-naming-a-b-c",
+  "capability_version": "domains@v1",
+  "surface_version": "agentcom-mcp@0.2.0",
+  "model": "similarity-proxy",
+  "host": "local-ci",
+  "method": "similarity-proxy",
+  "methodology_status": "valid_for_description_claim_only",
+  "methodology_note": "Variants differ in app/tool names AND descriptions; keyword triggers held constant. Upgrade to Tier-1 model runs before submission decisions.",
+  "dataset_hash": "c6f5299b1219981d",
+  "started_at": "2026-09-13T05:12:03.183Z",
+  "metrics": [
+    {
+      "label": "B-availability",
+      "f1": 0.7999999999999999,
+      "recall": 0.8571428571428571,
+      "falsePositiveRate": 0.6666666666666666,
+      "winner": true
+    },
+    {
+      "label": "A-checker",
+      "f1": 0.6666666666666666,
+      "recall": 0.7142857142857143,
+      "falsePositiveRate": 1,
+      "winner": false
+    },
+    {
+      "label": "C-finder",
+      "f1": 0.5333333333333333,
+      "recall": 0.5714285714285714,
+      "falsePositiveRate": 1.3333333333333333,
+      "winner": false
+    }
+  ],
+  "limitations": [
+    "lexical proxy, not model routing",
+    "app display name not exercised by proxy",
+    "10-case corpus is harness-scale"
+  ]
+}

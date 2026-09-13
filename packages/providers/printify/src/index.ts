@@ -1,5 +1,5 @@
 // Printify adapter — stub (Phase 10+). Interface-compatible, no quotes yet.
-import type { ArtworkRequirement, CanonicalProductSearch, PrintProvider, ProviderCandidate, ProviderOrder, ProviderOrderRequest, ProviderQuote, ProviderQuoteRequest } from "@print/domain";
+import type { ArtworkRequirement, CanonicalProductSearch, PrintProvider, ProviderCandidate, ProviderOrder, ProviderOrderRequest, ProviderQuote, ProviderQuoteRequest } from "@agentcom/domain";
 export class PrintifyProvider implements PrintProvider {
   readonly id = "printify";
   async searchProducts(_req: CanonicalProductSearch): Promise<ProviderCandidate[]> { return []; }

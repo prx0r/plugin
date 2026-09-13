@@ -13,6 +13,12 @@ export interface EvalTool {
    * model context wherever the host allows (opti.md #8).
    */
   audience?: "model" | "app";
+  /**
+   * Stable logical capability across metadata experiments (e.g.
+   * "domains.check_exact"). The exposed `name` varies per variant;
+   * evaluation always compares on logical identity.
+   */
+  logical?: string;
 }
 
 export interface EvalCase {
@@ -49,23 +55,38 @@ export const SEED_CASES: EvalCase[] = [
   { id: "trd-neg-2", vertical: "trades", utterance: "What temperature should my thermostat be?", expectTool: null },
 ];
 
+/** Ambiguous intents: review-only, never gating. A proxy must not guess these. */
+export interface AmbiguousCase {
+  id: string;
+  vertical: "domains" | "print" | "trades";
+  utterance: string;
+  note: string;
+}
+
+export const AMBIGUOUS_CASES: AmbiguousCase[] = [
+  { id: "amb-dom-1", vertical: "domains", utterance: "What about foo.com?", note: "No verb: availability, price, or owner lookup?" },
+  { id: "amb-dom-2", vertical: "domains", utterance: "Check Foo.", note: "No TLD, no task: clarify before routing." },
+  { id: "amb-dom-3", vertical: "domains", utterance: "Can I use Foo?", note: "Trademark/use question, not availability." },
+  { id: "amb-dom-4", vertical: "domains", utterance: "Is Foo free?", note: "Free as in available vs free as in price?" },
+];
+
 /** Good user-language tool defs. The bar variants must beat. */
 export const SEED_TOOLS: EvalTool[] = [
   {
     name: "check_exact_domain",
-    description: "Check whether an exact domain name is available to register. Use when the user asks if a specific domain is taken, free, or available.",
+    description: "Check the current registration record for an exact domain name via public RDAP data. Use when the user asks if a specific domain is taken, free, or available. A no-record result is not a purchase guarantee.",
     triggers: ["domain available", "available?", "taken", "free", "register", "check domain", "is available", "is taken", "registered"],
     hints: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
   },
   {
     name: "batch_check_domains",
-    description: "Check availability for several exact domain names at once. Use when the user lists multiple domains to compare.",
+    description: "Check current registration records for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
     triggers: ["these domains", "check these", "several domains", "compare domains", "bulk"],
     hints: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
   },
   {
     name: "find_available_domains",
-    description: "Suggest available domain names for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name.",
+    description: "Suggest domain names with no current registration record, for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name. Suggestions are RDAP-checked, not purchase-guaranteed.",
     triggers: ["suggest a domain", "domain ideas", "domain name for", "find a domain", "brand domain", "available"],
     hints: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
   },

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "updated": "2026-09-13",
+  "note": "Gavin-style pathological probes. Each probes one boundary; findings become gate checks + intel entries. Status: backlog|active|promoted|retired.",
+  "probes": [
+    { "id": "mobile-write-support", "boundary": "Do write tools work on mobile hosts?", "status": "backlog" },
+    { "id": "pip-lifecycle", "boundary": "Does a follow-up call without a widget kill picture-in-picture state?", "status": "backlog" },
+    { "id": "connection-time-loading", "boundary": "Are widgets/resources loaded at connect, delaying first paint?", "status": "backlog" },
+    { "id": "update-model-context", "boundary": "Do context updates survive subsequent turns per host?", "status": "backlog" },
+    { "id": "dark-mode-widget", "boundary": "Widget legibility in dark/light themes?", "status": "backlog" },
+    { "id": "free-tier-invocation", "boundary": "Do tools invoke on Free accounts, not just Plus?", "status": "backlog" },
+    { "id": "retry-widget-spam", "boundary": "Do retries stack iframes and bury the answer?", "status": "backlog" },
+    { "id": "published-csp-drift", "boundary": "Does published CSP placement differ from dev?", "status": "backlog" }
+  ]
+}

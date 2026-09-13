@@ -54,7 +54,7 @@
   "tools": [
     {
       "name": "check_exact_domain",
-      "description": "Check whether an exact domain name is available to register. Use when the user asks if a specific domain is taken, free, or available.",
+      "description": "Check the current registration record for an exact domain name via public RDAP data. Use when the user asks if a specific domain is taken, free, or available. A no-record result is not a purchase guarantee.",
       "inputs": [
         {
           "name": "domain",
@@ -63,7 +63,17 @@
           "description": "Exact fully-qualified domain to check, e.g. example.com."
         }
       ],
-      "outputs": ["input", "ascii", "valid", "invalidReason", "available", "source"],
+      "outputs": [
+        "input",
+        "ascii",
+        "valid",
+        "invalidReason",
+        "status",
+        "confidence",
+        "sources",
+        "checked_at",
+        "message"
+      ],
       "returns_structured_content": true,
       "has_output_schema": true,
       "annotations": {
@@ -85,7 +95,7 @@
     },
     {
       "name": "batch_check_domains",
-      "description": "Check availability for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
+      "description": "Check current registration records for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
       "inputs": [
         {
           "name": "domains",
@@ -94,7 +104,9 @@
           "description": "Between 1 and 20 exact fully-qualified domain names."
         }
       ],
-      "outputs": ["results"],
+      "outputs": [
+        "results"
+      ],
       "returns_structured_content": true,
       "has_output_schema": true,
       "annotations": {
@@ -116,7 +128,7 @@
     },
     {
       "name": "find_available_domains",
-      "description": "Suggest available domain names for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name.",
+      "description": "Suggest domain names with no current registration record, for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name. Suggestions are RDAP-checked, not purchase-guaranteed.",
       "inputs": [
         {
           "name": "keywords",
@@ -131,7 +143,9 @@
           "description": "How many options to return, 1 to 10. Defaults to 5."
         }
       ],
-      "outputs": ["results"],
+      "outputs": [
+        "results"
+      ],
       "returns_structured_content": true,
       "has_output_schema": true,
       "annotations": {
@@ -156,23 +170,33 @@
     "positive": [
       {
         "prompt": "Is pogtown.com available right now?",
-        "expected_tools": ["check_exact_domain"]
+        "expected_tools": [
+          "check_exact_domain"
+        ]
       },
       {
         "prompt": "Check pog.pet and pog.town for me.",
-        "expected_tools": ["batch_check_domains"]
+        "expected_tools": [
+          "batch_check_domains"
+        ]
       },
       {
         "prompt": "I like Pogtown. Give me ten strong available .com alternatives.",
-        "expected_tools": ["find_available_domains"]
+        "expected_tools": [
+          "find_available_domains"
+        ]
       },
       {
         "prompt": "Is agentcom.org taken?",
-        "expected_tools": ["check_exact_domain"]
+        "expected_tools": [
+          "check_exact_domain"
+        ]
       },
       {
         "prompt": "Which of these is free: alpha.io, alpha.co, alpha.dev?",
-        "expected_tools": ["batch_check_domains"]
+        "expected_tools": [
+          "batch_check_domains"
+        ]
       }
     ],
     "negative": [

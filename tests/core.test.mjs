@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { rankOffers, labelTopThree, collectOffers, CORE_WEIGHTS } from "@print/core";
+import { rankOffers, labelTopThree, collectOffers, CORE_WEIGHTS } from "@agentcom/core";
 
 function offer(over = {}) {
   return {

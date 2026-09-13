@@ -1,0 +1,18 @@
+{
+  "capability": "domains.check",
+  "production_url": "https://domains.agentcom.org",
+  "machine": {
+    "endpoint_reachable": false,
+    "mcp_handshake": false,
+    "tools_match_frozen": false,
+    "challenge_reachable": false,
+    "latency_ms": null
+  },
+  "human_portal": {
+    "verified_identity": false,
+    "scan_current": false,
+    "reviewer_state": "not-submitted"
+  },
+  "checked_at": null,
+  "note": "Machine facts are probe-written (studio probeDeployment). Humans never hand-edit machine facts; portal state is recorded separately."
+}

@@ -12,7 +12,7 @@ import {
   type ProviderOrderRequest,
   type ProviderQuote,
   type ProviderQuoteRequest,
-} from "@print/domain";
+} from "@agentcom/domain";
 
 const SKU_PREFIX: Record<string, string> = {
   tee_unisex_standard: "PRODIGI-TEE-STD",

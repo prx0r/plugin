@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { SEED_CASES, SEED_TOOLS, keywordSelector, runEvalSet, schemaGate, compareVariants, modelSurface, visibilityGate } from "@print/evals";
+import { SEED_CASES, SEED_TOOLS, keywordSelector, runEvalSet, schemaGate, compareVariants, modelSurface, visibilityGate } from "@agentcom/evals";
 
 describe("tool optimizer", () => {
   it("routes seed utterances, stays silent on negatives", () => {

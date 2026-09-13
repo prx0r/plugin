@@ -11,7 +11,9 @@ One boring market protocol underneath; domains, print, trades on top.
 - `apps/web` — WebMCP starter (third transport for agentcom.org pages).
 - `packages/core` — market kernel: intent, offers, capabilities, ranking,
   provider contract.
-- `packages/domains` — Domain Availability vertical (live RDAP, no auth).
+- `capabilities/domains` — Domain Availability vertical (live RDAP, no auth).
+- `capabilities/cancel-subscription/` — adapter plan only; kernel stays in
+  `prx0r/cancelme`, never forked here.
 - `packages/domain`, `packages/router`, `packages/artwork`,
   `packages/providers/*`, `packages/db` — Custom Print vertical (Prodigi,
   Printful first; sandbox stubs until API keys).
@@ -24,15 +26,18 @@ One boring market protocol underneath; domains, print, trades on top.
   preflight|full|experiment [id]>`.
 - `packages/http` — REST transport for capabilities (`POST /v1/domains/*`),
   same core, no duplicated logic.
-- `registry/` — capabilities, open experiments, append-only compatibility
-  log, dated results. `schemas/<capability>/v1.json` — frozen release
-  artifacts, asserted equal to the live server in CI.
+- `registry/` — capabilities, open experiments, probe backlog, append-only
+  compatibility log, deployments state, dated results.
+  `schemas/<capability>/v1.json` — frozen release artifacts, asserted equal
+  to the live server in CI.
 - `packages/ui` — reserved for the comparison widget.
 - `tests/` — node:test suites, one file per area.
 - `docs/` — build references (`agentcom-architecture.md`, `openai-*`,
   `webmcp.md`) plus `docs/strategy/` (theses, in arrival order:
   northstar, agentugly-thesis, service-relationships, plan, strat, alpha,
-  opti, publish, pogchat, etsy-pinterest-distribution).
+  opti, publish, pogchat, etsy-pinterest-distribution, devplan,
+  finalbuildsbuild, finalbuildsmbe, actualguide) plus `docs/REPO-BOUNDARY.md`
+  and `docs/outputs-as-studios.md`.
 - `intel/` — validated JSON knowledge base (submission, discovery, evals,
   review-ops) with schema, index, and watchlist. See `intel/README.md`.
 - `submissions/domains/` — Domain Availability submission packet:

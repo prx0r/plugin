@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { startMcpServer } from "@print/mcp/server";
+import { startMcpServer } from "@agentcom/mcp/server";
 
 async function liveServer() {
   const srv = startMcpServer(0);
@@ -28,6 +28,20 @@ describe("discovery surface", () => {
       const chal = await fetch(`${base}/.well-known/openai-apps-challenge`);
       assert.equal(chal.status, 404);
     } finally {
+      srv.close();
+    }
+  });
+
+  it("canonical base URL wins over Host headers when configured", async () => {
+    process.env.PUBLIC_BASE_URL = "https://domains.agentcom.org";
+    const { srv, base } = await liveServer();
+    try {
+      const manifest = await (await fetch(`${base}/.well-known/agentcom.json`)).json();
+      assert.equal(manifest.mcp, "https://domains.agentcom.org/mcp");
+      const jsonld = await (await fetch(`${base}/capability.jsonld`)).json();
+      assert.ok(JSON.stringify(jsonld).includes("https://domains.agentcom.org"));
+    } finally {
+      delete process.env.PUBLIC_BASE_URL;
       srv.close();
     }
   });

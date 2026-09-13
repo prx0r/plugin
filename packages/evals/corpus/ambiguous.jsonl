@@ -1,0 +1,4 @@
+{"id":"amb-dom-1","prompt":"What about foo.com?","vertical":"domains","note":"No verb: availability, price, or owner lookup?","review_only":true}
+{"id":"amb-dom-2","prompt":"Check Foo.","vertical":"domains","note":"No TLD, no task: clarify before routing.","review_only":true}
+{"id":"amb-dom-3","prompt":"Can I use Foo?","vertical":"domains","note":"Trademark/use question, not availability.","review_only":true}
+{"id":"amb-dom-4","prompt":"Is Foo free?","vertical":"domains","note":"Free as in available vs free as in price?","review_only":true}

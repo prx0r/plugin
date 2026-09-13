@@ -2,31 +2,34 @@
   "capability": "domains.check",
   "version": "v1",
   "frozen": "2026-09-13",
-  "note": "Release artifact. Backend may evolve; this surface only changes with a new version + re-review. Eval results per version live in registry/results/.",
+  "note": "Release artifact. Backend may evolve; this surface only changes with a new version + re-review. Eval results per version live in registry/results/. v1.1 2026-09-13: truth-state model (status/confidence/sources/checked_at), honest RDAP wording.",
   "tools": [
     {
       "name": "check_exact_domain",
-      "description": "Check whether an exact domain name is available to register. Use when the user asks if a specific domain is taken, free, or available.",
+      "description": "Check the current registration record for an exact domain name via public RDAP data. Use when the user asks if a specific domain is taken, free, or available. A no-record result is not a purchase guarantee.",
       "inputs": {
         "domain": { "type": "string", "minLength": 1, "maxLength": 253, "required": true }
       },
+      "outputs": ["input", "ascii", "valid", "invalidReason", "status", "confidence", "sources", "checked_at", "message"],
       "annotations": { "readOnlyHint": true, "openWorldHint": true, "destructiveHint": false }
     },
     {
       "name": "batch_check_domains",
-      "description": "Check availability for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
+      "description": "Check current registration records for up to 20 exact domain names at once. Use when the user lists several domains to compare.",
       "inputs": {
         "domains": { "type": "array", "minItems": 1, "maxItems": 20, "items": { "type": "string", "minLength": 1, "maxLength": 253 }, "required": true }
       },
+      "outputs": ["results"],
       "annotations": { "readOnlyHint": true, "openWorldHint": true, "destructiveHint": false }
     },
     {
       "name": "find_available_domains",
-      "description": "Suggest available domain names for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name.",
+      "description": "Suggest domain names with no current registration record, for a business, brand or idea. Use when the user wants domain ideas rather than checking one exact name. Suggestions are RDAP-checked, not purchase-guaranteed.",
       "inputs": {
         "keywords": { "type": "string", "minLength": 1, "maxLength": 80, "required": true },
         "maxResults": { "type": "integer", "minimum": 1, "maximum": 10, "required": false }
       },
+      "outputs": ["results"],
       "annotations": { "readOnlyHint": true, "openWorldHint": true, "destructiveHint": false }
     }
   ]

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { quotePersonalizedProduct, placePrintOrder, TOOLS } from "@print/mcp";
+import { quotePersonalizedProduct, placePrintOrder, TOOLS } from "@agentcom/mcp";
 
 describe("mcp safety", () => {
   it("exposes exactly the V1 semantic tools", () => {

@@ -2,7 +2,7 @@
 // Generalizes the hand-built Domain Availability packet so new verticals
 // (print, trades, pog) get correct-by-construction specs. Source truth flows
 // capability → plugin_spec.json → chatgpt-app-submission.json, never reverse.
-import type { EvalTool } from "@print/evals";
+import type { EvalTool } from "@agentcom/evals";
 
 export interface SpecInput {
   name: string;

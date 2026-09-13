@@ -1,12 +1,12 @@
 // MCP tool surface — Phase 7. Tiny semantic surface, no supplier ops.
 // Annotations per OpenAI Apps SDK guidance: readOnlyHint / destructiveHint /
 // openWorldHint / idempotentHint.
-import { validateArtwork } from "@print/artwork";
-import { CANONICAL_CATALOG, type Quote } from "@print/domain";
-import { isQuoteExpired, routeQuoteRequest } from "@print/router";
-import { MemoryStore } from "@print/db";
-import { ProdigiProvider } from "@print/prodigi";
-import { PrintfulProvider } from "@print/printful";
+import { validateArtwork } from "@agentcom/artwork";
+import { CANONICAL_CATALOG, type Quote } from "@agentcom/domain";
+import { isQuoteExpired, routeQuoteRequest } from "@agentcom/router";
+import { MemoryStore } from "@agentcom/db";
+import { ProdigiProvider } from "@agentcom/prodigi";
+import { PrintfulProvider } from "@agentcom/printful";
 
 export interface ToolAnnotations {
   readOnlyHint: boolean;

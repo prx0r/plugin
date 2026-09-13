@@ -1,5 +1,5 @@
 {
-  "name": "print",
+  "name": "agentcom",
   "private": true,
   "version": "0.1.0",
   "description": "AgentCom — real-world markets callable by AI agents. Monorepo: canonical router kernel, verticals (domains, print), MCP surfaces, evals, intel.",
@@ -7,7 +7,8 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "packages/providers/*"
+    "packages/providers/*",
+    "capabilities/*"
   ],
   "scripts": {
     "build": "tsc -b",
@@ -16,7 +17,8 @@
     "mcp": "node apps/mcp/src/server.ts",
     "studio": "node packages/studio/src/cli.ts",
     "preflight:domains": "python3 kits/plugin-canonical/agentcom_plugin_canonical/checks/plugin_lint.py submissions/domains/plugin_spec.json",
-    "preflight:schema": "python3 kits/plugin-canonical/agentcom_plugin_canonical/checks/validate_schema.py submissions/domains/plugin_spec.json"
+    "preflight:schema": "python3 kits/plugin-canonical/agentcom_plugin_canonical/checks/validate_schema.py submissions/domains/plugin_spec.json",
+    "intel:check": "python3 intel/check.py"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

@@ -1,5 +1,21 @@
 [
   {
+    "id": "local-surface-live-verified",
+    "topic": "discovery",
+    "advice": "Trust only live-probed surface facts: stateless MCP handshake, honest challenge 404, RDAP UA requirement, PUBLIC_BASE_URL override — all reproduced in-repo.",
+    "detail": "Covered by tests/discovery.test.mjs, tests/mcp-server.test.mjs and live RDAP lookups (taken/free/.co.uk). First item using the reproduced tier; template for migrating legacy verified claims.",
+    "source": {
+      "type": "community",
+      "url": "https://github.com/prx0r/plugin",
+      "date": "2026-09-13"
+    },
+    "confidence": "high",
+    "status": "self_verified",
+    "reproduction": "reproduced",
+    "host": "local-ci",
+    "applies_to": ["domains", "print", "trades"],
+    "last_checked": "2026-09-13"
+  },  {
     "id": "acp-april-2026-surface",
     "topic": "discovery",
     "advice": "Treat ACP as a sixth capability surface (MCP, MCP App, WebMCP, HTTP, ACP, website) — carts, feeds, orders, auth, MCP integration, negotiation, payment handlers, discounts.",

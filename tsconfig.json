@@ -9,5 +9,5 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["packages/*/src/**/*.ts", "packages/providers/*/src/**/*.ts", "apps/*/src/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "packages/providers/*/src/**/*.ts", "capabilities/*/src/**/*.ts", "apps/*/src/**/*.ts"]
 }

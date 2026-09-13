@@ -1,6 +1,6 @@
 // HTTP API surface — same capability core as MCP/WebMCP, no duplicated logic.
-// Thin translation: HTTP shapes ↔ domain package. All rules live in @print/domains.
-import { findAvailable, normalizeDomain, RdapProvider } from "@print/domains";
+// Thin translation: HTTP shapes ↔ domain package. All rules live in @agentcom/domains.
+import { findAvailable, normalizeDomain, RdapProvider } from "@agentcom/domains";
 
 export interface RestResult {
   status: number;
@@ -13,16 +13,14 @@ export async function checkDomainRest(provider: RdapProvider, domain: unknown): 
   }
   const norm = normalizeDomain(domain);
   if (!norm.valid) return { status: 422, body: { input: domain, valid: false, invalidReason: norm.invalidReason } };
-  const { checkedAt: _dropped, ...result } = await provider.check(domain);
-  void _dropped;
-  return { status: 200, body: result };
+  return { status: 200, body: await provider.check(domain) };
 }
 
 export async function batchDomainsRest(provider: RdapProvider, domains: unknown): Promise<RestResult> {
   if (!Array.isArray(domains) || domains.length < 1 || domains.length > 20 || domains.some((d) => typeof d !== "string")) {
     return { status: 400, body: { error: "Provide 1–20 domain strings." } };
   }
-  const results = (await provider.batch(domains as string[])).map(({ checkedAt: _dropped, ...r }) => r);
+  const results = await provider.batch(domains as string[]);
   return { status: 200, body: { results } };
 }
 
@@ -35,6 +33,6 @@ export async function suggestDomainsRest(
     return { status: 400, body: { error: "Provide keywords up to 80 chars." } };
   }
   const max = typeof maxResults === "number" && Number.isInteger(maxResults) ? Math.min(10, Math.max(1, maxResults)) : 5;
-  const results = (await findAvailable(provider, keywords, max)).map(({ checkedAt: _dropped, ...r }) => r);
+  const results = await findAvailable(provider, keywords, max);
   return { status: 200, body: { results } };
 }

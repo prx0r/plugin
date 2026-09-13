@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { routeQuoteRequest, isQuoteExpired, WEIGHT_PRESETS } from "@print/router";
+import { routeQuoteRequest, isQuoteExpired, WEIGHT_PRESETS } from "@agentcom/router";
 
 const now = new Date("2026-09-13T00:00:00Z");
 

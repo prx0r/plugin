@@ -1,0 +1,7 @@
+{"id":"dom-neg-1","prompt":"Why are .com domains so valuable?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-2","prompt":"What is DNS and how does it work?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-3","prompt":"What is RDAP?","expected_tool":null,"vertical":"domains"}
+{"id":"prt-neg-1","prompt":"What is DTG printing?","expected_tool":null,"vertical":"print"}
+{"id":"prt-neg-2","prompt":"Who invented screen printing?","expected_tool":null,"vertical":"print"}
+{"id":"trd-neg-1","prompt":"How does a combi boiler work?","expected_tool":null,"vertical":"trades"}
+{"id":"trd-neg-2","prompt":"What temperature should my thermostat be?","expected_tool":null,"vertical":"trades"}

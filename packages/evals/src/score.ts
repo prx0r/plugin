@@ -27,9 +27,15 @@ export interface EvalReport {
   results: CaseResult[];
 }
 
-export function runEvalSet(cases: EvalCase[], tools: EvalTool[], selector: ToolSelector): EvalReport {
+export interface EvalOptions {
+  /** Map a predicted exposed name back to logical identity before compare. */
+  resolve?: (predicted: string | null) => string | null;
+}
+
+export function runEvalSet(cases: EvalCase[], tools: EvalTool[], selector: ToolSelector, opts?: EvalOptions): EvalReport {
+  const resolve = opts?.resolve ?? ((p: string | null) => p);
   const results: CaseResult[] = cases.map((c) => {
-    const predicted = selector(c.utterance, tools);
+    const predicted = resolve(selector(c.utterance, tools));
     return { id: c.id, expected: c.expectTool, predicted, correct: predicted === c.expectTool };
   });
   const positives = cases.filter((c) => c.expectTool != null);

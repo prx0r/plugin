@@ -1,5 +1,5 @@
 // Persistence row types — Phase 9. Implementation can start in-memory / sqlite.
-import type { Order, Quote, RoutingDecision } from "@print/domain";
+import type { Order, Quote, RoutingDecision } from "@agentcom/domain";
 
 export interface QuoteRow {
   quote: Quote;

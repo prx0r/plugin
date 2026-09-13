@@ -1,7 +1,7 @@
 // Hill-climb: compare two metadata variants on the same cases + selector.
 // Ship the winner only on positive F1 delta. Deterministic.
 import type { EvalCase, EvalTool } from "./cases.ts";
-import { runEvalSet, type EvalReport } from "./score.ts";
+import { runEvalSet, type EvalOptions, type EvalReport } from "./score.ts";
 import type { ToolSelector } from "./selector.ts";
 
 export interface ClimbResult {
@@ -18,9 +18,10 @@ export function compareVariants(
   base: EvalTool[],
   variant: EvalTool[],
   selector: ToolSelector,
+  opts?: EvalOptions,
 ): ClimbResult {
-  const b = runEvalSet(cases, base, selector);
-  const v = runEvalSet(cases, variant, selector);
+  const b = runEvalSet(cases, base, selector, opts);
+  const v = runEvalSet(cases, variant, selector, opts);
   const delta = v.f1 - b.f1;
   return {
     baseF1: b.f1,

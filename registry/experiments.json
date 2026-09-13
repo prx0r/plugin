@@ -1,6 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "updated": "2026-09-13",
+  "note": "v2 representation: logical capability stable, model-facing representation varies per variant. v1 results retained with methodology_status annotations.",
   "experiments": [
     {
       "id": "domain-naming-a-b-c",
@@ -10,30 +11,30 @@
       "variants": [
         {
           "label": "A-checker",
-          "app": "Domain Checker",
-          "tools": {
-            "check_exact_domain": "Check whether a domain name is currently available.",
-            "batch_check_domains": "Check several domain names for availability at once.",
-            "find_available_domains": "Suggest available domain names for an idea."
-          }
+          "app": { "displayName": "Domain Checker", "subtitle": "Check domain availability" },
+          "tools": [
+            { "logical": "domains.check_exact", "name": "check_domain", "title": "Check domain", "description": "Check whether a domain name is currently available." },
+            { "logical": "domains.check_batch", "name": "check_domains", "title": "Check domains", "description": "Check several domain names for availability at once." },
+            { "logical": "domains.check_suggest", "name": "find_domain", "title": "Find domain", "description": "Suggest available domain names for an idea." }
+          ]
         },
         {
           "label": "B-availability",
-          "app": "Domain Availability",
-          "tools": {
-            "check_exact_domain": "Returns current registration availability for an exact domain name.",
-            "batch_check_domains": "Returns current registration availability for up to 20 exact domain names.",
-            "find_available_domains": "Returns available domain-name suggestions for keywords."
-          }
+          "app": { "displayName": "Domain Availability", "subtitle": "Check domain availability" },
+          "tools": [
+            { "logical": "domains.check_exact", "name": "check_domain_availability", "title": "Check domain availability", "description": "Returns current registration availability for an exact domain name." },
+            { "logical": "domains.check_batch", "name": "batch_check_domain_availability", "title": "Batch check domains", "description": "Returns current registration availability for up to 20 exact domain names." },
+            { "logical": "domains.check_suggest", "name": "find_available_domains", "title": "Find available domains", "description": "Returns available domain-name suggestions for keywords." }
+          ]
         },
         {
           "label": "C-finder",
-          "app": "Find Available Domains",
-          "tools": {
-            "check_exact_domain": "Check live registrar availability before suggesting or purchasing a domain.",
-            "batch_check_domains": "Check live registrar availability for a list of domains.",
-            "find_available_domains": "Find purchasable domain names matching keywords."
-          }
+          "app": { "displayName": "Find Available Domains", "subtitle": "Live domain name search" },
+          "tools": [
+            { "logical": "domains.check_exact", "name": "find_available_domain", "title": "Find available domain", "description": "Check live registrar availability before suggesting or purchasing a domain." },
+            { "logical": "domains.check_batch", "name": "find_available_domains_bulk", "title": "Find domains in bulk", "description": "Check live registrar availability for a list of domains." },
+            { "logical": "domains.check_suggest", "name": "suggest_domains", "title": "Suggest domains", "description": "Find purchasable domain names matching keywords." }
+          ]
         }
       ],
       "metric": "selection-accuracy",

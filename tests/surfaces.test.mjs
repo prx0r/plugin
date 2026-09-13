@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { createAgentComServer } from "@print/mcp/server";
-import { TOOLS } from "@print/mcp";
-import { domainCheckToolDef } from "@print/web/webmcp";
+import { createAgentComServer } from "@agentcom/mcp/server";
+import { TOOLS } from "@agentcom/mcp";
+import { domainCheckToolDef } from "@agentcom/web/webmcp";
 
 const frozen = JSON.parse(readFileSync(new URL("../schemas/domain/v1.json", import.meta.url)));
 
@@ -69,7 +69,7 @@ describe("surface contracts", () => {
 
   it("registry capabilities match the served manifest", async () => {
     const registry = JSON.parse(readFileSync(new URL("../registry/capabilities.json", import.meta.url)));
-    const { startMcpServer } = await import("@print/mcp/server");
+    const { startMcpServer } = await import("@agentcom/mcp/server");
     const srv = startMcpServer(0);
     await new Promise((res) => srv.on("listening", res));
     const { port } = srv.address();

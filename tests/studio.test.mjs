@@ -7,9 +7,10 @@ import {
   preflight,
   ALL_FALSE_FLAGS,
   rankVariants,
+  runTier1,
   logSelectionEvent,
-} from "@print/studio";
-import { SEED_CASES, SEED_TOOLS, keywordSelector } from "@print/evals";
+} from "@agentcom/studio";
+import { SEED_CASES, SEED_TOOLS, AMBIGUOUS_CASES, keywordSelector } from "@agentcom/evals";
 
 const TOOL = {
   name: "check_exact_domain",
@@ -82,6 +83,29 @@ describe("studio", () => {
     assert.equal(go.verdict, "GO");
     const badCounts = preflight({ app: like.app, tests: { positive: [1], negative: [] } }, ALL_FALSE_FLAGS);
     assert.ok(badCounts.blockers.some((b) => b.includes("5 positive")));
+  });
+
+  it("committed corpus matches seeds exactly (regen, never hand-edit)", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const lines = async (f) => (await readFile(new URL(`../packages/evals/corpus/${f}`, import.meta.url), "utf8")).trim().split("\n").map(JSON.parse);
+    const positives = await lines("positives.jsonl");
+    const negatives = await lines("negatives.jsonl");
+    const ambiguous = await lines("ambiguous.jsonl");
+    assert.equal(positives.length + negatives.length, SEED_CASES.length);
+    assert.deepEqual(new Set(positives.map((p) => p.id)), new Set(SEED_CASES.filter((c) => c.expectTool).map((c) => c.id)));
+    assert.deepEqual(new Set(ambiguous.map((a) => a.id)), new Set(AMBIGUOUS_CASES.map((c) => c.id)));
+    assert.ok(ambiguous.every((a) => a.review_only === true));
+  });
+
+  it("Tier-1 runner records immutable rows with a fake judge", async () => {
+    const fake = async (prompt, tools) => ({
+      tool: keywordSelector(prompt, tools),
+      args: {},
+    });
+    const summary = await runTier1(SEED_CASES.slice(0, 4), SEED_TOOLS, fake, { model: "fake-judge-v1", toolVariant: "test" });
+    assert.equal(summary.records.length, 4);
+    assert.ok(summary.records.every((r) => r.model === "fake-judge-v1" && typeof r.timestamp === "string"));
+    assert.ok(summary.precision >= 0 && summary.precision <= 1);
   });
 
   it("optimizer ranks user language first and logs selection events", () => {

@@ -1,5 +1,5 @@
 // Artwork service — Phase 6. Validates/transforms, never invents creative content.
-import type { ArtworkRequirement, ArtworkStatus } from "@print/domain";
+import type { ArtworkRequirement, ArtworkStatus } from "@agentcom/domain";
 
 export interface ArtworkInput {
   widthPx: number;

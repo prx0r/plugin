@@ -33,7 +33,7 @@ export function domainCheckToolDef(): WebMcpToolDef {
   return {
     name: "check_domain_availability",
     description:
-      "Check whether an exact domain name is available to register. Use when the user asks if a specific domain is taken, free, or available.",
+      "Check the current registration record for an exact domain name via public RDAP data. Use when the user asks if a specific domain is taken, free, or available. A no-record result is not a purchase guarantee.",
     inputSchema: {
       type: "object",
       properties: { domain: { type: "string", description: "Exact domain, e.g. example.com" } },
