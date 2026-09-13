@@ -154,3 +154,32 @@ basement-xmcp.
 
 finalbuilds2 at /home/ubuntu/finalbuilds2 (prx0r/finalbuilds2).
 cancelme at prx0r/cancelme (not cloned yet).
+
+---
+
+## Session update 2026-09-13 (after handover)
+
+### Additional commits
+- `53faf06` — Expanded eval corpus (20 pos / 19 neg / 9 ambiguous), promotion registry, OpenAPI alignment, test thresholds
+- `eedb831` — Deploy/check scripts, privacy/terms/support pages, 10+ trades eval cases, capability.json
+
+### New additions
+- `scripts/deploy.sh` — Start plugin + tunnel + validate in one shot
+- `scripts/check.sh` — Dev health check (5 endpoints, 0 failures target)
+- `apps/web/public/privacy.html` — Privacy policy placeholder
+- `apps/web/public/terms.html` — Terms of service placeholder
+- `apps/web/public/support.html` — Support page placeholder
+- `capabilities/domains/capability.json` — Capability manifest
+- `agentcom/registry/promotions.json` — Cross-repo promotion registry
+
+### Eval corpus size: 20 positive, 22 negative, 9 ambiguous
+Expanded with: batch checks, co.uk domains, urgent plumber, heating engineer, bathroom renovation, roofer, electrician, combi boiler, radiator bleeding, Gas Safe.
+
+### Health check confirmed
+All 5 endpoints pass: healthz, manifest, llms.txt, /v1/domains.check, /mcp initialize handshake.
+
+### Registry experiments
+A/B/C naming experiment running, first result saved: B-availability wins (0.74 F1 vs lexical proxy).
+
+### Tool description strategy
+The keyword selector hits ~0.8 F1 on 20 positive cases. The tool descriptions use explicit trigger phrases. Next step: Tier 1 model routing evals with actual OpenAI API.
