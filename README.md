@@ -5,9 +5,9 @@ One boring market protocol underneath; domains, print, trades on top.
 
 ## Layout
 
-- `apps/mcp` — remote MCP server: 9 intent-verb tools, Streamable HTTP at
-  `/mcp`, discovery at `/llms.txt`, `/.well-known/agentcom.json`,
-  `/capability.jsonld`. Run with `npm run mcp`.
+- `apps/mcp` — MCP surfaces:
+  - `server.ts` = dev/internal aggregate (domains + print, never publish this catalog)
+  - `remote-server.ts` = publishable ChatGPT plugin surface (domains.check only). Run via `npm run remote-plugin`.
 - `apps/web` — WebMCP starter (third transport for agentcom.org pages).
 - `packages/core` — market kernel: intent, offers, capabilities, ranking,
   provider contract.
@@ -51,11 +51,13 @@ One boring market protocol underneath; domains, print, trades on top.
 
 - `npm install`
 - `npm run typecheck`
-- `npm test` (43 tests)
-- `npm run mcp` (serves on `PORT`, default 8787)
+- `npm test` (62+ tests)
+- `npm run mcp` (dev aggregate on `PORT`, default 8787)
+- `npm run remote-plugin` (ChatGPT plugin surface on 2092; tunnel it to test)
 - `npm run studio -- full` (eval+gates rollup; exit 0 on pass)
 - `npm run studio -- preflight` (submission verdict from packet + flags)
 - `npm run preflight:schema` / `npm run preflight:domains` (submission gate)
+- See `docs/PLUGIN_TEST_AND_SUBMIT.md` and `NEXT-STEPS.md` for upload steps.
 
 ## Rules that matter
 

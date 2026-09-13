@@ -1,0 +1,26 @@
+{
+  "intent": "domains.check",
+  "tests": [
+    {
+      "prompt": "Is bogusdomain.example available?",
+      "expected_behavior": "Call domains.check with domain=bogusdomain.example",
+      "expected_result_schema": { "results": "array", "meta": "object" }
+    },
+    {
+      "prompt": "Check these: one.test, two.test",
+      "expected_behavior": "Call domains.check with domains=[one.test, two.test]"
+    },
+    {
+      "prompt": "Give me name ideas for acme widgets",
+      "expected_behavior": "Call domains.check with keywords=acme widgets"
+    },
+    {
+      "prompt": "Run ranking-domain test case",
+      "expected_behavior": "Return up to maxResults domains"
+    },
+    {
+      "prompt": "Run parameter extraction check",
+      "expected_behavior": "Return same domain in results"
+    }
+  ]
+}

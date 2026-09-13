@@ -1,0 +1,46 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "AgentCom capabilities API", "version": "0.1.0", "description": "Capability endpoints + evaluation scaffolding." },
+  "servers": [{ "url": "http://localhost:2092" }],
+  "paths": {
+    "/healthz": { "get": { "operationId": "healthz", "summary": "Liveness probe.", "responses": { "200": { "description": "OK" } } } },
+    "/mcp": { "post": { "operationId": "mcpEndpoint", "summary": "MCP endpoint placeholder." } },
+    "/v1/domains.check": {
+      "post": {
+        "operationId": "domainsCheck",
+        "summary": "Check one or more domains and generate ideas.",
+        "responses": {
+          "200": {
+            "description": "Capability result.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DomainsCheckResult" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DomainsCheckResult": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "domain": { "type": "string" },
+                "available": { "type": ["boolean", "null"] },
+                "confidence": { "enum": ["high", "medium", "low"] },
+                "checkedAt": { "type": "string", "format": "date-time" },
+                "reason": { "type": "string" },
+                "details": { "type": "object" }
+              }
+            }
+          },
+          "meta": { "type": "object", "properties": { "generatedAt": { "type": "string", "format": "date-time" } } }
+        },
+        "required": ["results", "meta"]
+      }
+    }
+  }
+}

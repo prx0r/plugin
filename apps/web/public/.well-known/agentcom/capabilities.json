@@ -1,0 +1,20 @@
+{
+  "name": "Domain Availability",
+  "description": "Check whether one or more domains are available to register and discover available name suggestions.",
+  "version": "0.1.0",
+  "capability": "domains.check",
+  "publish_url": "https://agentcom.org/domain-availability",
+  "capabilities": [
+    { "id": "domains.check", "url": "https://agentcom.org/domain-availability/capabilities/domains.check.json" }
+  ],
+  "interfaces": {
+    "mcp": true,
+    "rest": true,
+    "web": true,
+    "chatgpt": true
+  },
+  "mcp": {
+    "tool": "domains.check",
+    "endpoint": "http://localhost:2092/mcp"
+  }
+}

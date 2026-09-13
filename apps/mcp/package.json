@@ -5,7 +5,11 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./server": "./src/server.ts"
+    "./server": "./src/server.ts",
+    "./remote-server": "./src/remote-server.ts"
+  },
+  "scripts": {
+    "plugin": "node src/remote-server.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^2.0.0",

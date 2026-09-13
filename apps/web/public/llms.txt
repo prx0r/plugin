@@ -1,0 +1,7 @@
+Check whether one or more domains are available to register and discover available name suggestions. Capability: domains.check.
+
+OpenAPI: docs/domains/openapi.json
+Capability JSON: packages/evals/capabilities/domains.check.json
+
+MCP endpoint: http://localhost:2092/mcp
+Web capability page: apps/web/public/.well-known/agentcom/capabilities.json

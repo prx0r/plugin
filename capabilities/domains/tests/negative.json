@@ -1,0 +1,17 @@
+{
+  "intent": "domains.check",
+  "tests": [
+    {
+      "prompt": "Why do .com domains dominate?",
+      "expected_behavior": "Model responds knowledgeably without calling tool."
+    },
+    {
+      "prompt": "List the top 10 TLDs.",
+      "expected_behavior": "Model responds knowledgeably without calling tool."
+    },
+    {
+      "prompt": "How does DNS work?",
+      "expected_behavior": "Model answers with an explanation only."
+    }
+  ]
+}

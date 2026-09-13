@@ -1,78 +1,39 @@
-# WebMCP — distilled reference + AgentCom integration (2026-09-13)
+# WebMCP capability reference — domains.check
 
-Sources: Chrome build-tools / compare-mcp / early-preview posts (André Cipriani
-Bandarra), Moz + Pacific54 implementation writeups, W3C CG draft (editors incl.
-Dominic Farolino). Status: early preview behind origin trial; subject to change.
+Short note to follow actualguide.md. Capability `domains.check` can be exposed as remote MCP, HTTP, web page, and WebMCP. The WebMCP surface is the website-side equivalent of remote MCP for agents already interacting with the page.
 
-## What it is
+## Shared semantics
 
-Browser API (`document.modelContext`, earlier drafts `navigator.modelContext`
-— feature-detect both) letting a page register structured tools
-`{name, description, inputSchema, annotations, execute}` that an agent running
-in the same browser (sidebar, built-in agent, extension) invokes directly, no
-server round-trip. Declarative API for HTML forms, imperative API for JS.
-Ship both MCP (backend) and WebMCP (frontend) where the same job exists —
-agents use whichever transport they have.
+The canonical tool is `domains.check`. Any surface should expose the same logical tool and similar input/output semantics:
+- input: `domain?`, `domains?`, `keywords?`, `maxResults?`
+- output: `{ results: [{ domain, available, confidence, checkedAt, reason }], meta: { generatedAt } }`
 
-## Rules that transfer 1:1 to our MCP tools
+The tool description should be:
+`Check whether one or more domains are available to register and discover available name suggestions.`
 
-- Same annotations, honestly set (`readOnlyHint`/`destructiveHint` change agent
-  behaviour) **plus** `untrustedContentHint` for tools returning user-generated
-  or outside content (reviews, comments) so the agent treats it as data, not
-  instructions. Trades review/offer content needs this flag.
-- Errors must guide, never dead-end: wrong state ("Search for flights first"),
-  bad params ("Provide the date in YYYY-MM-DD format"), empty results (suggest
-  loosening criteria), business-rule violations (point at returns policy).
-  Never raw dumps, never silent failure. Our FailureCode set already follows
-  this; every new failure needs its recovery sentence.
-- Design loop is ours verbatim: user goal → initial state → role-play turns →
-  variance (vague "NYC next week" → ask, don't assume) → evals (selection,
-  params, state) → production telemetry → update evals + definitions.
-- Keep payloads small; fetch corpus on demand. Tool defs tiny, data lazy.
+That matches the ChatGPT-facing copy.
 
-## Security notes (secure-tools page + field reports)
+## WebMCP registration snippet
 
-- A WebMCP tool runs as the logged-in user: apply the same server-side authz
-  as any JS-callable action. Never bypass your own access controls.
-- Feature-detect BEFORE loading the bundle (guard the load, then the call) —
-  late detection wastes bytes and lies to capability checks.
-- Spam-filter conflict is real: the tool is the defined door for legitimate
-  automation; keep traps armed for everything else. Silent non-execution (agent
-  believes it booked, nothing happened) is the worst failure mode — verify
-  registration on a schedule, like a payment webhook.
-- Extension content scripts do NOT get origin-trial features: an
-  extension-based assistant finds no tools while page console lists them.
-- Almost no agent traffic yet; mainstream consumer agents calling WebMCP tools
-  are not shipping. Experiment lane, not distribution.
+Use the JS snippet at `apps/web/public/domains.check.webmcp.js` on the capability landing page. It registers `domains.check` when the browser agent API is present, and falls back to `fetch('/v1/domains.check', ...)` for clients without the API.
 
-## How WebMCP is used HERE (AgentCom)
+## Remote MCP
 
-Third transport for the same capability — MCP server, ChatGPT app, **website**:
+Use `packages/mcp/` to expose the same `domains.check` tool over MCP. The canonical interface points are:
+- Streamable HTTP endpoint: `POST /mcp`
+- tool name: `domains.check`
+- description + schemas: `packages/evals/capabilities/domains.check.json`
 
-```
-Capability (domains.check)
-   ├── MCP server  → ChatGPT / Codex / Claude / raw clients
-   ├── ChatGPT app → directory + contextual surfacing
-   └── agentcom.org page + webmcp.js → Chrome sidebar agents, extensions
-```
+## REST skeleton
 
-Concrete integration points:
+Capability-specific REST endpoints should live under:
+- `POST /v1/domains.check` — capability call
+- `GET /healthz` — liveness probe
 
-1. **Capability landing pages** (the indexable SEO surface from intel) each
-   register 1–3 tools: declarative form tool for `check_exact_domain`,
-   imperative tool for quote/offer lookup hitting our public endpoints.
-   Same descriptions, same triggers, same eval cases as the MCP tools —
-   one metadata source, three transports.
-2. **Domain checkout completion on our site.** Digital goods can't sell inside
-   the plugin, so purchase lands on agentcom.org anyway — that page is where
-   WebMCP earns its keep: a browser agent can drive check → cart → register
-   without DOM-guessing. Design that page's tools first, page UI second.
-3. **Scheduled registration check.** CI probes the live pages for
-   `registerTool` presence per supporting browser matrix; missing registration
-   pages like a failed deploy, not a warning.
-4. **Starter**: `apps/web/src/webmcp.ts` — feature-detect, tool-def builders,
-   recovery-message formatter. Pure parts unit-tested; browser wiring guarded
-   so imports never throw in Node.
+OpenAPI skeleton: `docs/domains/openapi.json`.
 
-Out of scope until traffic exists: declarative checkout forms, extension
-targeting, per-page analytics beyond the signal-tool pattern.
+## Production considerations
+
+- Use `PUBLIC_BASE_URL` to form canonical metadata and discovery URLs; never trust `Host` headers behind proxies.
+- Capability landing page should include a `capabilities.json` manifest and optionally `llms.txt` for agent-readable discovery.
+- Confirm the tool's availability semantics: `available: true` means registrar-grade confirmation is preferred; RDAP-only results should use medium confidence or explicitly state the limitation.

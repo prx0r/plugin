@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema#",
+  "$id": "urn:agentcom:domains.check.submission:v1",
+  "title": "domains.check submission manifest",
+  "capability": "domains.check",
+  "app": {
+    "name": "Domain Availability",
+    "shortDescription": "Check if a domain name is available right now.",
+    "longDescription": "Use when you need to know whether a domain name can be registered today. Checks live registry state (not guesses), returns availability plus current registration and renewal prices. Also searches for available names from a business idea, compares prices across registrars, and scores names for length and clarity.",
+    "category": "productivity",
+    "urls": {
+      "website": "https://agentcom.org/domain-availability",
+      "supportUrl": "https://agentcom.org/support",
+      "privacyPolicyUrl": "https://agentcom.org/privacy",
+      "termsUrl": "https://agentcom.org/terms"
+    }
+  },
+  "tools": ["domains.check"],
+  "testing": {
+    "positive": [
+      "Is bogusdomain.example available?",
+      "Check these domains: one.test, two.test",
+      "Give me name ideas for acme widgets",
+      "Run ranking-domain test case",
+      "Run parameter extraction check"
+    ],
+    "negative": [
+      "Why do .com domains dominate?",
+      "List the top 10 TLDs.",
+      "How does DNS work?"
+    ]
+  },
+  "releaseNotes": "Initial ChatGPT plugin surface for domains.check. Remote MCP endpoint required for submission."
+}

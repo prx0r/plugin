@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Domain Availability</title>
+  </head>
+  <body>
+    <h1>Domain Availability</h1>
+    <p>Check whether one or more domains are available to register and discover available name suggestions.</p>
+    <form id="domain-form">
+      <input type="text" name="domain" placeholder="example.com" required />
+      <button type="submit">Check</button>
+    </form>
+    <script type="module">
+      const form = document.querySelector('#domain-form');
+
+      async function checkDomains(payload) {
+        const res = await fetch('/v1/domains.check', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return res.json();
+      }
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = new FormData(form);
+        const domain = (data.get('domain') || '').toString().trim();
+        if (!domain) return;
+        const result = await checkDomains({ domain });
+        window.alert(JSON.stringify(result.results, null, 2));
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema#",
+  "$id": "urn:agentcom:domains.check:v1",
+  "title": "AgentCom domains.check capability (ChatGPT tool surface)",
+  "version": 1,
+  "capability": "domains.check",
+  "description": "Check whether one or more domains are available to register and discover available name suggestions.",
+  "tooling": {
+    "chatgpt": {
+      "enabled": true,
+      "class": "TOOLS_ONLY"
+    },
+    "surface": {
+      "web": true,
+      "mcp": true,
+      "rest": true,
+      "chatgpt": true
+    }
+  },
+  "route": {
+    "app_name": "Domain Availability",
+    "app_subtitle": "Check domain availability",
+    "publish_url": "https://agentcom.org/domain-availability",
+    "mcp_url": "http://localhost:2092/mcp",
+    "registry_file": "packages/evals/capabilities/domains.check.json"
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "domain": { "type": "string", "minLength": 1, "maxLength": 253, "description": "Exact domain to check (e.g., example.com)." },
+      "domains": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 253 }, "minItems": 1, "maxItems": 20, "description": "Check multiple exact domains at once." },
+      "keywords": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Business or brand keywords to generate domain ideas for." },
+      "maxResults": { "type": "integer", "minimum": 1, "maximum": 10, "description": "Maximum suggestions to return (if generating ideas)." }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      { "required": ["domain"] },
+      { "required": ["domains"] },
+      { "required": ["keywords"] }
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["domain", "available", "confidence"],
+          "properties": {
+            "domain": { "type": "string" },
+            "available": { "type": "boolean", "description": "True when registrar-grade availability is confirmed; false when registered/unavailable; null when inconclusive (no purchase from null)" },
+            "confidence": { "enum": ["high", "medium", "low"], "description": "high=registrar-grade verified, medium=RDAP-only or partial checks, low=uncertain/unknown" },
+            "checkedAt": { "type": "string", "format": "date-time" },
+            "reason": { "type": "string", "description": "Stable human-readable explanation." },
+            "details": { "type": "object" }
+          }
+        }
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "generatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "required": ["results", "meta"],
+    "additionalProperties": false
+  }
+}
