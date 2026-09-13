@@ -2,3 +2,8 @@
 {"id":"amb-dom-2","prompt":"Check Foo.","vertical":"domains","note":"No TLD, no task: clarify before routing.","review_only":true}
 {"id":"amb-dom-3","prompt":"Can I use Foo?","vertical":"domains","note":"Trademark/use question, not availability.","review_only":true}
 {"id":"amb-dom-4","prompt":"Is Foo free?","vertical":"domains","note":"Free as in available vs free as in price?","review_only":true}
+{"id":"amb-print-1","prompt":"Can you make me something custom?","vertical":"print","note":"Custom what? Product, image, or gift?","review_only":true}
+{"id":"amb-print-2","prompt":"I want to sell prints online.","vertical":"print","note":"Selling, not buying — commerce intent?","review_only":true}
+{"id":"amb-print-3","prompt":"How much would a poster cost?","vertical":"print","note":"Generic pricing question, no artwork specified.","review_only":true}
+{"id":"amb-trades-1","prompt":"My house needs work.","vertical":"trades","note":"Too vague — what kind of work?","review_only":true}
+{"id":"amb-trades-2","prompt":"Someone should fix this.","vertical":"trades","note":"No service specified, no location.","review_only":true}

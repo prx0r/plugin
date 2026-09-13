@@ -5,9 +5,16 @@
 {"id":"dom-pos-5","prompt":"Find me a .com available for an AI accounting startup","expected_tool":"find_available_domains","vertical":"domains"}
 {"id":"dom-pos-6","prompt":"Check whether agentcom.org is registered","expected_tool":"check_exact_domain","vertical":"domains"}
 {"id":"dom-pos-7","prompt":"Give me ten available names under 12 characters","expected_tool":"find_available_domains","vertical":"domains"}
+{"id":"dom-pos-8","prompt":"Check if google.cloud is taken","expected_tool":"check_exact_domain","vertical":"domains"}
+{"id":"dom-pos-9","prompt":"Which of these are free: foo.io, bar.dev, baz.com?","expected_tool":"batch_check_domains","vertical":"domains"}
+{"id":"dom-pos-10","prompt":"Give me five available .ai names for a machine learning startup","expected_tool":"find_available_domains","vertical":"domains"}
+{"id":"dom-pos-11","prompt":"Find me a .co.uk domain for a bakery","expected_tool":"find_available_domains","vertical":"domains"}
+{"id":"dom-pos-12","prompt":"Is openai.com registered?","expected_tool":"check_exact_domain","vertical":"domains"}
 {"id":"prt-pos-1","prompt":"Put this image on a hoodie and order one","expected_tool":"quote_personalized_product","vertical":"print"}
 {"id":"prt-pos-2","prompt":"Put Buster on a mug","expected_tool":"find_printable_products","vertical":"print"}
 {"id":"prt-pos-3","prompt":"Is this design big enough to print on a poster?","expected_tool":"prepare_print_design","vertical":"print"}
 {"id":"trd-pos-1","prompt":"My boiler won't ignite and I need someone tomorrow","expected_tool":"find_local_services","vertical":"trades"}
 {"id":"trd-pos-2","prompt":"Find a plumber in Nottingham","expected_tool":"find_local_services","vertical":"trades"}
 {"id":"trd-pos-3","prompt":"Get quotes for fixing my boiler","expected_tool":"request_service_quotes","vertical":"trades"}
+{"id":"trd-pos-4","prompt":"I need an electrician urgently in London","expected_tool":"find_local_services","vertical":"trades"}
+{"id":"trd-pos-5","prompt":"Get me three quotes for a bathroom renovation","expected_tool":"request_service_quotes","vertical":"trades"}

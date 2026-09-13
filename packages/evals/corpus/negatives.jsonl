@@ -1,7 +1,19 @@
 {"id":"dom-neg-1","prompt":"Why are .com domains so valuable?","expected_tool":null,"vertical":"domains"}
 {"id":"dom-neg-2","prompt":"What is DNS and how does it work?","expected_tool":null,"vertical":"domains"}
 {"id":"dom-neg-3","prompt":"What is RDAP?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-4","prompt":"How does DNS resolution work?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-5","prompt":"Why should startups buy .ai instead of .com?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-6","prompt":"Is the trademark for Nike available?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-7","prompt":"Who owns facebook.com?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-8","prompt":"Is @openai available on Twitter?","expected_tool":null,"vertical":"domains"}
+{"id":"dom-neg-9","prompt":"How much did google.com sell for originally?","expected_tool":null,"vertical":"domains"}
 {"id":"prt-neg-1","prompt":"What is DTG printing?","expected_tool":null,"vertical":"print"}
 {"id":"prt-neg-2","prompt":"Who invented screen printing?","expected_tool":null,"vertical":"print"}
+{"id":"prt-neg-3","prompt":"What does DTG stand for?","expected_tool":null,"vertical":"print"}
+{"id":"prt-neg-4","prompt":"How much does a screen printing machine cost?","expected_tool":null,"vertical":"print"}
+{"id":"prt-neg-5","prompt":"Is sublimation better than DTG?","expected_tool":null,"vertical":"print"}
 {"id":"trd-neg-1","prompt":"How does a combi boiler work?","expected_tool":null,"vertical":"trades"}
 {"id":"trd-neg-2","prompt":"What temperature should my thermostat be?","expected_tool":null,"vertical":"trades"}
+{"id":"trd-neg-3","prompt":"How does a gas valve work?","expected_tool":null,"vertical":"trades"}
+{"id":"trd-neg-4","prompt":"Should I get an annual boiler service?","expected_tool":null,"vertical":"trades"}
+{"id":"trd-neg-5","prompt":"What qualifications does a heating engineer need?","expected_tool":null,"vertical":"trades"}

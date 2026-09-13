@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "note": "Capabilities promoted from finalbuilds2 → plugin for ChatGPT publication. Each entry records source backend + target surface. Read-only for /plugin; finalbuilds2 owns promotion decisions.",
+  "promotions": [
+    {
+      "capability_id": "domains.check",
+      "promotion_status": "active",
+      "target_repo": "prx0r/plugin",
+      "source_backend": "native (capabilities/domains/)",
+      "source_capability_ids": ["domains.check"],
+      "reason": "First experiment: live RDAP, honest wording, no auth, tiny schema, deterministic.",
+      "promoted_at": "2026-09-13",
+      "mcp_url": "https://domains.agentcom.org/mcp",
+      "surfaces": ["mcp", "webmcp", "rest", "chatgpt"],
+      "eval_status": "corpus_ready",
+      "tier_0_f1": null,
+      "tier_1_status": "needs_model_key",
+      "submission_status": "not_submitted"
+    },
+    {
+      "capability_id": "cancel.subscription",
+      "promotion_status": "queued",
+      "target_repo": "prx0r/plugin",
+      "source_backend": "prx0r/cancelme",
+      "source_capability_ids": ["cancel.resolver", "cancel.identify_biller"],
+      "reason": "High consumer intent, stale information problem, 2-tool surface planned.",
+      "promoted_at": null,
+      "surfaces": ["mcp", "chatgpt"],
+      "eval_status": "not_started",
+      "submission_status": "not_started"
+    },
+    {
+      "capability_id": "llm.price_compare",
+      "promotion_status": "queued",
+      "target_repo": "prx0r/plugin",
+      "source_backend": "finalbuilds2/site_llmdeals",
+      "source_capability_ids": ["llm.deals.aggregate", "llm.pricing.compare", "llm.inference.economics"],
+      "reason": "Frequently changing numerical truth, developer repeat-use.",
+      "promoted_at": null,
+      "surfaces": ["mcp", "chatgpt"],
+      "eval_status": "not_started",
+      "submission_status": "not_started"
+    }
+  ]
+}

@@ -1,17 +1,47 @@
 {
   "openapi": "3.0.3",
-  "info": { "title": "AgentCom capabilities API", "version": "0.1.0", "description": "Capability endpoints + evaluation scaffolding." },
+  "info": {
+    "title": "AgentCom capabilities API",
+    "version": "0.1.0",
+    "description": "Capability endpoints for domains.check. REST surface mirrors MCP; same canonical handler."
+  },
   "servers": [{ "url": "http://localhost:2092" }],
   "paths": {
-    "/healthz": { "get": { "operationId": "healthz", "summary": "Liveness probe.", "responses": { "200": { "description": "OK" } } } },
-    "/mcp": { "post": { "operationId": "mcpEndpoint", "summary": "MCP endpoint placeholder." } },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz",
+        "summary": "Liveness probe.",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "mcpEndpoint",
+        "summary": "Streamable HTTP MCP endpoint. Use for ChatGPT/Codex/Claude.",
+        "responses": { "200": { "description": "MCP protocol response." } }
+      }
+    },
     "/v1/domains.check": {
       "post": {
         "operationId": "domainsCheck",
-        "summary": "Check one or more domains and generate ideas.",
+        "summary": "Check domains and generate suggestions via REST. Same handler as MCP domains.check tool.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  { "type": "object", "required": ["domain"], "properties": { "domain": { "type": "string" } } },
+                  { "type": "object", "required": ["domains"], "properties": { "domains": { "type": "array", "items": { "type": "string" } } } },
+                  { "type": "object", "required": ["keywords"], "properties": { "keywords": { "type": "string" }, "maxResults": { "type": "integer" } } }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Capability result.",
+            "description": "Domain availability results.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DomainsCheckResult" } } }
           }
         }
@@ -20,23 +50,22 @@
   },
   "components": {
     "schemas": {
+      "DomainCheck": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string" },
+          "available": { "type": ["boolean", "null"], "description": "true=RDAP no record (medium confidence); false=registered; null=unknown" },
+          "confidence": { "enum": ["high", "medium", "low"] },
+          "checkedAt": { "type": "string", "format": "date-time" },
+          "reason": { "type": "string" },
+          "details": { "type": "object" }
+        },
+        "required": ["domain", "available", "confidence", "checkedAt", "reason"]
+      },
       "DomainsCheckResult": {
         "type": "object",
         "properties": {
-          "results": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "domain": { "type": "string" },
-                "available": { "type": ["boolean", "null"] },
-                "confidence": { "enum": ["high", "medium", "low"] },
-                "checkedAt": { "type": "string", "format": "date-time" },
-                "reason": { "type": "string" },
-                "details": { "type": "object" }
-              }
-            }
-          },
+          "results": { "type": "array", "items": { "$ref": "#/components/schemas/DomainCheck" } },
           "meta": { "type": "object", "properties": { "generatedAt": { "type": "string", "format": "date-time" } } }
         },
         "required": ["results", "meta"]
