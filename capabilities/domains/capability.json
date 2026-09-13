@@ -1,0 +1,16 @@
+{
+  "id": "domains.check",
+  "version": "1.0.0",
+  "title": "Domain Availability",
+  "description": "Check the current registration record for an exact domain name via public RDAP data. Use when the user asks if a specific domain is taken, free, or available. A no-record result is not a purchase guarantee.",
+  "tools": ["check_exact_domain", "batch_check_domains", "find_available_domains"],
+  "auth": "none",
+  "commercial": false,
+  "surfaces": ["mcp", "webmcp", "rest", "chatgpt"],
+  "mcp_url": "https://domains.agentcom.org/mcp",
+  "rest_url": "https://domains.agentcom.org/v1/domains.check",
+  "webmcp_url": "https://agentcom.org/domain-availability",
+  "eval_status": "corpus_ready",
+  "submission_status": "not_submitted",
+  "created_at": "2026-09-13"
+}

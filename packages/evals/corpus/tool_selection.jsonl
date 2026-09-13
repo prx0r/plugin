@@ -18,6 +18,13 @@
 {"id":"trd-pos-3","prompt":"Get quotes for fixing my boiler","expected_tool":"request_service_quotes","vertical":"trades","kind":"tool_selection"}
 {"id":"trd-pos-4","prompt":"I need an electrician urgently in London","expected_tool":"find_local_services","vertical":"trades","kind":"tool_selection"}
 {"id":"trd-pos-5","prompt":"Get me three quotes for a bathroom renovation","expected_tool":"request_service_quotes","vertical":"trades","kind":"tool_selection"}
+{"id":"trd-pos-6","prompt":"I need a roofer in Manchester to fix a leak","expected_tool":"find_local_services","vertical":"trades","kind":"tool_selection"}
+{"id":"trd-pos-7","prompt":"Can someone look at my boiler today?","expected_tool":"find_local_services","vertical":"trades","kind":"tool_selection"}
+{"id":"trd-pos-8","prompt":"Find me a reliable electrician near Birmingham","expected_tool":"find_local_services","vertical":"trades","kind":"tool_selection"}
+{"id":"trd-pos-9","prompt":"How much would it cost to fix a leaking tap?","expected_tool":"request_service_quotes","vertical":"trades","kind":"tool_selection"}
+{"id":"trd-pos-10","prompt":"I need a plumber urgently — my kitchen is flooding","expected_tool":"find_local_services","vertical":"trades","kind":"tool_selection"}
+{"id":"trd-pos-11","prompt":"Get quotes from three heating engineers in Nottingham","expected_tool":"request_service_quotes","vertical":"trades","kind":"tool_selection"}
+{"id":"trd-pos-12","prompt":"Who can service my Worcester Bosch boiler?","expected_tool":"find_local_services","vertical":"trades","kind":"tool_selection"}
 {"id":"dom-neg-1","prompt":"Why are .com domains so valuable?","expected_tool":null,"vertical":"domains","kind":"tool_selection"}
 {"id":"dom-neg-2","prompt":"What is DNS and how does it work?","expected_tool":null,"vertical":"domains","kind":"tool_selection"}
 {"id":"dom-neg-3","prompt":"What is RDAP?","expected_tool":null,"vertical":"domains","kind":"tool_selection"}
@@ -37,3 +44,6 @@
 {"id":"trd-neg-3","prompt":"How does a gas valve work?","expected_tool":null,"vertical":"trades","kind":"tool_selection"}
 {"id":"trd-neg-4","prompt":"Should I get an annual boiler service?","expected_tool":null,"vertical":"trades","kind":"tool_selection"}
 {"id":"trd-neg-5","prompt":"What qualifications does a heating engineer need?","expected_tool":null,"vertical":"trades","kind":"tool_selection"}
+{"id":"trd-neg-6","prompt":"What is a combi boiler?","expected_tool":null,"vertical":"trades","kind":"tool_selection"}
+{"id":"trd-neg-7","prompt":"How do I bleed a radiator?","expected_tool":null,"vertical":"trades","kind":"tool_selection"}
+{"id":"trd-neg-8","prompt":"What is a Gas Safe registered engineer?","expected_tool":null,"vertical":"trades","kind":"tool_selection"}

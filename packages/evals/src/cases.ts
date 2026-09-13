@@ -72,6 +72,16 @@ export const SEED_CASES: EvalCase[] = [
   { id: "trd-neg-5", vertical: "trades", utterance: "What qualifications does a heating engineer need?", expectTool: null },
   { id: "trd-pos-4", vertical: "trades", utterance: "I need an electrician urgently in London", expectTool: "find_local_services" },
   { id: "trd-pos-5", vertical: "trades", utterance: "Get me three quotes for a bathroom renovation", expectTool: "request_service_quotes" },
+  { id: "trd-pos-6", vertical: "trades", utterance: "I need a roofer in Manchester to fix a leak", expectTool: "find_local_services" },
+  { id: "trd-pos-7", vertical: "trades", utterance: "Can someone look at my boiler today?", expectTool: "find_local_services" },
+  { id: "trd-pos-8", vertical: "trades", utterance: "Find me a reliable electrician near Birmingham", expectTool: "find_local_services" },
+  { id: "trd-pos-9", vertical: "trades", utterance: "How much would it cost to fix a leaking tap?", expectTool: "request_service_quotes" },
+  { id: "trd-pos-10", vertical: "trades", utterance: "I need a plumber urgently — my kitchen is flooding", expectTool: "find_local_services" },
+  { id: "trd-pos-11", vertical: "trades", utterance: "Get quotes from three heating engineers in Nottingham", expectTool: "request_service_quotes" },
+  { id: "trd-pos-12", vertical: "trades", utterance: "Who can service my Worcester Bosch boiler?", expectTool: "find_local_services" },
+  { id: "trd-neg-6", vertical: "trades", utterance: "What is a combi boiler?", expectTool: null },
+  { id: "trd-neg-7", vertical: "trades", utterance: "How do I bleed a radiator?", expectTool: null },
+  { id: "trd-neg-8", vertical: "trades", utterance: "What is a Gas Safe registered engineer?", expectTool: null },
 ];
 
 /** Ambiguous intents: review-only, never gating. A proxy must not guess these. */

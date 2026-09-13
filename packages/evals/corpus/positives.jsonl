@@ -18,3 +18,10 @@
 {"id":"trd-pos-3","prompt":"Get quotes for fixing my boiler","expected_tool":"request_service_quotes","vertical":"trades"}
 {"id":"trd-pos-4","prompt":"I need an electrician urgently in London","expected_tool":"find_local_services","vertical":"trades"}
 {"id":"trd-pos-5","prompt":"Get me three quotes for a bathroom renovation","expected_tool":"request_service_quotes","vertical":"trades"}
+{"id":"trd-pos-6","prompt":"I need a roofer in Manchester to fix a leak","expected_tool":"find_local_services","vertical":"trades"}
+{"id":"trd-pos-7","prompt":"Can someone look at my boiler today?","expected_tool":"find_local_services","vertical":"trades"}
+{"id":"trd-pos-8","prompt":"Find me a reliable electrician near Birmingham","expected_tool":"find_local_services","vertical":"trades"}
+{"id":"trd-pos-9","prompt":"How much would it cost to fix a leaking tap?","expected_tool":"request_service_quotes","vertical":"trades"}
+{"id":"trd-pos-10","prompt":"I need a plumber urgently — my kitchen is flooding","expected_tool":"find_local_services","vertical":"trades"}
+{"id":"trd-pos-11","prompt":"Get quotes from three heating engineers in Nottingham","expected_tool":"request_service_quotes","vertical":"trades"}
+{"id":"trd-pos-12","prompt":"Who can service my Worcester Bosch boiler?","expected_tool":"find_local_services","vertical":"trades"}

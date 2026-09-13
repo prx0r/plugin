@@ -17,3 +17,6 @@
 {"id":"trd-neg-3","prompt":"How does a gas valve work?","expected_tool":null,"vertical":"trades"}
 {"id":"trd-neg-4","prompt":"Should I get an annual boiler service?","expected_tool":null,"vertical":"trades"}
 {"id":"trd-neg-5","prompt":"What qualifications does a heating engineer need?","expected_tool":null,"vertical":"trades"}
+{"id":"trd-neg-6","prompt":"What is a combi boiler?","expected_tool":null,"vertical":"trades"}
+{"id":"trd-neg-7","prompt":"How do I bleed a radiator?","expected_tool":null,"vertical":"trades"}
+{"id":"trd-neg-8","prompt":"What is a Gas Safe registered engineer?","expected_tool":null,"vertical":"trades"}
